@@ -3,7 +3,7 @@ import { useParams, Link } from 'react-router-dom';
 import { Layout } from '@/app/components/Layout';
 import { useAuth } from '@/context/AuthContext';
 import { enrollmentService } from '@/services/api';
-import { Star, Users, Clock, BarChart2, Award, ChevronRight, BookOpen } from 'lucide-react';
+import { Star, Users, Clock, ChevronRight, BookOpen } from 'lucide-react';
 
 const API_BASE = 'http://localhost:3000/api';
 
@@ -64,6 +64,11 @@ export default function CourseDetailsPage() {
     return name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2);
   };
 
+  const formatPrice = (price: any) => {
+    if (!price || price === 0 || price === '0') return 'Miễn phí';
+    return Number(price).toLocaleString('vi-VN') + ' VND';
+  };
+
   return (
     <Layout>
       {loading ? (
@@ -80,6 +85,7 @@ export default function CourseDetailsPage() {
         </div>
       ) : (
         <>
+          {/* Hero */}
           <div className="bg-gray-900 text-white">
             <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
               <div className="max-w-3xl">
@@ -100,6 +106,12 @@ export default function CourseDetailsPage() {
                     <Users className="h-5 w-5" />
                     <span>{course.student_count || 0} học viên</span>
                   </div>
+                  {course.duration && (
+                    <div className="flex items-center gap-2 text-gray-300">
+                      <Clock className="h-5 w-5" />
+                      <span>{course.duration}</span>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-3">
                   <div className="w-10 h-10 rounded-full bg-orange-600 flex items-center justify-center font-bold text-sm">
@@ -114,8 +126,10 @@ export default function CourseDetailsPage() {
             </div>
           </div>
 
+          {/* Body */}
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-10">
             <div className="flex flex-col lg:flex-row gap-10">
+              {/* Left */}
               <div className="flex-1 min-w-0">
                 <div className="bg-white border border-gray-200 rounded-xl p-6 mb-8">
                   <h2 className="text-xl font-bold mb-4 flex items-center gap-2">
@@ -123,7 +137,7 @@ export default function CourseDetailsPage() {
                     Bạn sẽ học được gì
                   </h2>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {['Nắm vững kiến thức cơ bản và nâng cao','Áp dụng vào dự án thực tế','Hiểu rõ các best practices','Xây dựng portfolio chuyên nghiệp'].map((item, idx) => (
+                    {['Nắm vững kiến thức cơ bản và nâng cao', 'Áp dụng vào dự án thực tế', 'Hiểu rõ các best practices', 'Xây dựng portfolio chuyên nghiệp'].map((item, idx) => (
                       <div key={idx} className="flex items-start gap-2 text-gray-700">
                         <span className="text-green-500 mt-0.5 font-bold">✓</span>
                         <span className="text-sm">{item}</span>
@@ -131,10 +145,12 @@ export default function CourseDetailsPage() {
                     ))}
                   </div>
                 </div>
+
                 <div className="bg-white border border-gray-200 rounded-xl p-6 mb-8">
                   <h2 className="text-xl font-bold mb-3">Về khóa học</h2>
                   <p className="text-gray-600 leading-relaxed">{course.description}</p>
                 </div>
+
                 <div className="bg-white border border-gray-200 rounded-xl p-6">
                   <h2 className="text-xl font-bold mb-4">Giảng viên</h2>
                   <div className="flex items-start gap-4">
@@ -150,6 +166,7 @@ export default function CourseDetailsPage() {
                 </div>
               </div>
 
+              {/* Right — Card */}
               <div className="lg:w-80 flex-shrink-0">
                 <div className="sticky top-6 bg-white border border-gray-200 rounded-xl shadow-lg overflow-hidden">
                   <div className="w-full h-48 bg-gradient-to-br from-orange-500 to-purple-600 flex items-center justify-center">
@@ -160,33 +177,36 @@ export default function CourseDetailsPage() {
                     )}
                   </div>
                   <div className="p-6">
-                    <div className="text-3xl font-bold text-orange-600 mb-4">
-                      {course.price ? Number(course.price).toLocaleString('vi-VN') + 'đ' : 'Miễn phí'}
+                    {/* Giá — đồng nhất với /courses */}
+                    <div className="text-3xl font-bold text-orange-500 mb-4">
+                      {formatPrice(course.price)}
                     </div>
+
                     {isEnrolled ? (
-                      <Link to={`/my-courses/${course.id}/lessons`} className="block w-full text-center bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition mb-4">
+                      <Link to={`/my-courses/${course.id}/lessons`}
+                        className="block w-full text-center bg-green-600 text-white py-3 rounded-lg font-semibold hover:bg-green-700 transition mb-4">
                         Tiếp tục học
                       </Link>
                     ) : (
-                      <button onClick={handleEnroll} disabled={enrolling} className="w-full bg-orange-600 text-white py-3 rounded-lg font-semibold hover:bg-orange-700 transition disabled:opacity-50 mb-4">
+                      <button onClick={handleEnroll} disabled={enrolling}
+                        className="w-full bg-orange-500 text-white py-3 rounded-lg font-semibold hover:bg-orange-600 transition disabled:opacity-50 mb-4">
                         {enrolling ? 'Đang ghi danh...' : 'Đăng ký khóa học'}
                       </button>
                     )}
+
                     <div className="space-y-3 border-t pt-4">
                       <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-2 text-gray-600"><Clock className="h-4 w-4" /><span>Thời lượng</span></div>
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <Clock className="h-4 w-4" />
+                          <span>Thời lượng</span>
+                        </div>
                         <span className="font-medium">{course.duration || '—'}</span>
                       </div>
                       <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-2 text-gray-600"><BarChart2 className="h-4 w-4" /><span>Cấp độ</span></div>
-                        <span className="font-medium">{course.level || 'Tất cả cấp độ'}</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-2 text-gray-600"><Award className="h-4 w-4" /><span>Chứng chỉ</span></div>
-                        <span className="font-medium text-green-600">Có</span>
-                      </div>
-                      <div className="flex items-center justify-between text-sm">
-                        <div className="flex items-center gap-2 text-gray-600"><Users className="h-4 w-4" /><span>Học viên</span></div>
+                        <div className="flex items-center gap-2 text-gray-600">
+                          <Users className="h-4 w-4" />
+                          <span>Học viên</span>
+                        </div>
                         <span className="font-medium">{course.student_count || 0}</span>
                       </div>
                     </div>

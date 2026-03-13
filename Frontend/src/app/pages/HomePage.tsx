@@ -143,7 +143,7 @@ export default function HomePage() {
                     </div>
                     <div className="flex items-center">
                       <span className="text-yellow-400">★</span>
-                      <span className="ml-1">{course.rating || 0}</span>
+                      <span className="ml-1">{course.rating || 4.9}</span>
                     </div>
                   </div>
                   
@@ -158,7 +158,7 @@ export default function HomePage() {
                   </div>}
                   <div className="mt-4 flex justify-between items-center">
                     <span className="text-2xl font-bold text-orange-600">
-                      {course.price || ''}
+                      {course.price !== null && course.price !== undefined && course.price > 0 ? `${course.price.toLocaleString()} VND` : 'Miễn phí'}
                     </span>
                     <Link
                       to={`/courses/${course.slug || course.id}`}

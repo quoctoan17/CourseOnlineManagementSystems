@@ -1,9 +1,10 @@
 import { AdminLayout } from "./AdminLayout";
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Edit, Trash2, Plus, X, BookOpen } from 'lucide-react';
+import { Search, Edit, Trash2, Plus, X, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const API_BASE = 'http://localhost:3000/api';
+const PAGE_SIZE = 8;
 function getToken() { return localStorage.getItem('token') || ''; }
 function authHeaders() { return { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` }; }
 const EMPTY_FORM = { title: '', description: '', price: '', category_id: '', thumbnail: '' };
@@ -12,6 +13,7 @@ export default function CourseManagementPage() {
   const [courses, setCourses] = useState([]);
   const [categories, setCategories] = useState([]);
   const [searchTerm, setSearchTerm] = useState('');
+  const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
@@ -26,7 +28,7 @@ export default function CourseManagementPage() {
   const fetchCourses = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/courses?limit=100`, { headers: authHeaders() });
+      const res = await fetch(`${API_BASE}/courses?limit=1000`, { headers: authHeaders() });
       const data = await res.json();
       setCourses(data.data || []);
     } catch (err) { console.error(err); } finally { setLoading(false); }
@@ -42,6 +44,9 @@ export default function CourseManagementPage() {
 
   useEffect(() => { fetchCourses(); fetchCategories(); }, []);
 
+  // Reset page khi search thay đổi
+  useEffect(() => { setPage(1); }, [searchTerm]);
+
   const handleAdd = async () => {
     if (!form.title || !form.description) { alert('Vui lòng điền tên và mô tả'); return; }
     setSaving(true);
@@ -52,7 +57,8 @@ export default function CourseManagementPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Lỗi');
-      setShowAddModal(false); setForm(EMPTY_FORM); await fetchCourses(); showToast('✅ Tạo khóa học thành công');
+      setShowAddModal(false); setForm(EMPTY_FORM); await fetchCourses();
+      showToast('✅ Tạo khóa học thành công');
     } catch (err) { alert('Lỗi: ' + err.message); } finally { setSaving(false); }
   };
 
@@ -82,14 +88,18 @@ export default function CourseManagementPage() {
       const res = await fetch(`${API_BASE}/courses/${selectedCourse.id}`, { method: 'DELETE', headers: authHeaders() });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Lỗi');
-      setShowDeleteModal(false); await fetchCourses(); showToast('✅ Xóa thành công');
+      setShowDeleteModal(false); await fetchCourses();
+      showToast('✅ Xóa thành công');
     } catch (err) { alert('Lỗi: ' + err.message); } finally { setSaving(false); }
   };
 
+  // Filter + Pagination
   const filtered = courses.filter((c) =>
     c.title?.toLowerCase().includes(searchTerm.toLowerCase()) ||
     c.instructor_name?.toLowerCase().includes(searchTerm.toLowerCase())
   );
+  const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
+  const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
 
   const formFields = (
     <div className="space-y-4">
@@ -155,40 +165,69 @@ export default function CourseManagementPage() {
           {loading ? <div className="p-12 text-center text-gray-500">Đang tải...</div>
             : filtered.length === 0 ? <div className="p-12 text-center text-gray-500">Không tìm thấy khóa học nào</div>
             : (
-              <table className="w-full">
-                <thead className="bg-gray-50 border-b">
-                  <tr>
-                    {['Khóa học','Giảng viên','Học viên','Giá','Trạng thái','Ngày tạo','Hành động'].map((h, i) => (
-                      <th key={i} className={`px-6 py-4 text-sm font-semibold text-gray-900 ${i === 6 ? 'text-right' : 'text-left'}`}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-gray-100">
-                  {filtered.map((course) => (
-                    <tr key={course.id} className="hover:bg-gray-50">
-                      <td className="px-6 py-4 font-medium">{course.title}</td>
-                      <td className="px-6 py-4 text-gray-600">{course.instructor_name || '—'}</td>
-                      <td className="px-6 py-4 text-gray-600">{course.student_count || 0}</td>
-                      <td className="px-6 py-4 text-gray-600">{course.price ? Number(course.price).toLocaleString('vi-VN') + 'đ' : 'Miễn phí'}</td>
-                      <td className="px-6 py-4">
-                        <span className={`px-3 py-1 rounded-full text-sm font-medium ${course.status === 'published' || course.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                          {course.status === 'published' || course.status === 'active' ? 'Đã xuất bản' : 'Nháp'}
-                        </span>
-                      </td>
-                      <td className="px-6 py-4 text-gray-600">{course.created_at ? new Date(course.created_at).toLocaleDateString('vi-VN') : '—'}</td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center justify-end gap-2">
-                          <Link to={`/admin/courses/${course.id}/lessons`} className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition" title="Quản lý bài học">
-                            <BookOpen className="h-5 w-5" />
-                          </Link>
-                          <button onClick={() => openEdit(course)} className="p-2 text-orange-500 hover:bg-orange-50 rounded-lg transition"><Edit className="h-5 w-5" /></button>
-                          <button onClick={() => { setSelectedCourse(course); setShowDeleteModal(true); }} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"><Trash2 className="h-5 w-5" /></button>
-                        </div>
-                      </td>
+              <>
+                <table className="w-full">
+                  <thead className="bg-gray-50 border-b">
+                    <tr>
+                      {['Khóa học','Giảng viên','Học viên','Giá','Trạng thái','Ngày tạo','Hành động'].map((h, i) => (
+                        <th key={i} className={`px-6 py-4 text-sm font-semibold text-gray-900 ${i === 6 ? 'text-right' : 'text-left'}`}>{h}</th>
+                      ))}
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody className="divide-y divide-gray-100">
+                    {paginated.map((course) => (
+                      <tr key={course.id} className="hover:bg-gray-50">
+                        <td className="px-6 py-4 font-medium max-w-[180px] truncate">{course.title}</td>
+                        <td className="px-6 py-4 text-gray-600">{course.instructor_name || '—'}</td>
+                        <td className="px-6 py-4 text-gray-600">{course.student_count || 0}</td>
+                        <td className="px-6 py-4 text-gray-600">{course.price ? Number(course.price).toLocaleString('vi-VN') + 'đ' : 'Miễn phí'}</td>
+                        <td className="px-6 py-4">
+                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${course.status === 'published' || course.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
+                            {course.status === 'published' || course.status === 'active' ? 'Đã xuất bản' : 'Nháp'}
+                          </span>
+                        </td>
+                        <td className="px-6 py-4 text-gray-600">{course.created_at ? new Date(course.created_at).toLocaleDateString('vi-VN') : '—'}</td>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center justify-end gap-2">
+                            <Link to={`/admin/courses/${course.id}/lessons`} className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition" title="Quản lý bài học">
+                              <BookOpen className="h-5 w-5" />
+                            </Link>
+                            <button onClick={() => openEdit(course)} className="p-2 text-orange-500 hover:bg-orange-50 rounded-lg transition"><Edit className="h-5 w-5" /></button>
+                            <button onClick={() => { setSelectedCourse(course); setShowDeleteModal(true); }} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"><Trash2 className="h-5 w-5" /></button>
+                          </div>
+                        </td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+
+                {/* Pagination */}
+                {totalPages > 1 && (
+                  <div className="px-6 py-4 border-t bg-gray-50 flex items-center justify-between">
+                    <span className="text-sm text-gray-500">
+                      Hiển thị {(page - 1) * PAGE_SIZE + 1}–{Math.min(page * PAGE_SIZE, filtered.length)} / {filtered.length} khóa học
+                    </span>
+                    <div className="flex items-center gap-2">
+                      <button onClick={() => setPage(p => Math.max(1, p - 1))} disabled={page === 1}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm border transition disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white">
+                        <ChevronLeft className="h-4 w-4" /> Trước
+                      </button>
+                      <div className="flex items-center gap-1">
+                        {Array.from({ length: totalPages }, (_, i) => i + 1).map(p => (
+                          <button key={p} onClick={() => setPage(p)}
+                            className={`w-8 h-8 rounded-lg text-sm font-medium transition ${p === page ? 'bg-orange-500 text-white' : 'hover:bg-gray-200 text-gray-600'}`}>
+                            {p}
+                          </button>
+                        ))}
+                      </div>
+                      <button onClick={() => setPage(p => Math.min(totalPages, p + 1))} disabled={page === totalPages}
+                        className="flex items-center gap-1 px-3 py-1.5 rounded-lg text-sm border transition disabled:opacity-40 disabled:cursor-not-allowed hover:bg-white">
+                        Sau <ChevronRight className="h-4 w-4" />
+                      </button>
+                    </div>
+                  </div>
+                )}
+              </>
             )}
         </div>
 

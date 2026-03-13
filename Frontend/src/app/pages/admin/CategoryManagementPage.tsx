@@ -1,4 +1,4 @@
-import { AdminLayout } from "./AdminLayout";
+import { AdminLayout } from '@/app/pages/admin/AdminLayout';
 import { useState, useEffect } from 'react';
 import { Plus, Edit, Trash2, Folder, X } from 'lucide-react';
 
@@ -41,7 +41,7 @@ export default function CategoryManagementPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Lỗi');
-      setShowAddModal(false); setForm(EMPTY_FORM); await fetchCategories(); showToast('✅ Tạo danh mục thành công');
+      setShowAddModal(false); setForm(EMPTY_FORM); await fetchCategories(); showToast('Tạo danh mục thành công');
     } catch (err) { alert('Lỗi: ' + err.message); } finally { setSaving(false); }
   };
 
@@ -61,7 +61,7 @@ export default function CategoryManagementPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Lỗi');
-      setShowEditModal(false); await fetchCategories(); showToast('✅ Cập nhật thành công');
+      setShowEditModal(false); await fetchCategories(); showToast('Cập nhật thành công');
     } catch (err) { alert('Lỗi: ' + err.message); } finally { setSaving(false); }
   };
 
@@ -71,7 +71,7 @@ export default function CategoryManagementPage() {
       const res = await fetch(`${API_BASE}/categories/${selected.id}`, { method: 'DELETE', headers: authHeaders() });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Lỗi');
-      setShowDeleteModal(false); await fetchCategories(); showToast('✅ Xóa thành công');
+      setShowDeleteModal(false); await fetchCategories(); showToast('Xóa thành công');
     } catch (err) { alert('Lỗi: ' + err.message); } finally { setSaving(false); }
   };
 

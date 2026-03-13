@@ -57,7 +57,7 @@ class Course {
   static async findBySlug(slug) {
     const query = `
       SELECT 
-        c.id, c.title, c.description, c.thumbnail, c.instructor_id, c.category_id, c.created_at, c.slug,
+        c.id, c.title, c.description, c.thumbnail, c.instructor_id, c.category_id, c.created_at, c.slug, c.price, c.status,
         u.full_name as instructor_name, u.email as instructor_email,
         cat.name as category_name,
         COUNT(DISTINCT e.user_id) as student_count

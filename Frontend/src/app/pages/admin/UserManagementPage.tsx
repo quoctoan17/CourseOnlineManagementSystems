@@ -206,11 +206,10 @@ export default function UserManagementPage() {
             )}
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mt-8">
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mt-8">
           {[
             { label: 'Tổng người dùng', value: users.length },
             { label: 'Học viên', value: users.filter(u => u.role === 'student').length },
-            { label: 'Giảng viên', value: users.filter(u => u.role === 'instructor').length },
             { label: 'Hoạt động', value: users.filter(u => u.status !== 'inactive').length },
           ].map((s, i) => (
             <div key={i} className="bg-white rounded-lg border p-6">

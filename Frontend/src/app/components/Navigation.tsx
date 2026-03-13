@@ -9,7 +9,7 @@ interface NavigationProps {
 
 export function Navigation({ user, logout }: NavigationProps) {
   return (
-    <nav className="bg-white shadow-md">
+    <nav className="sticky top-0 z-50 bg-white shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
         <div className="flex justify-between h-16">
           <div className="flex">

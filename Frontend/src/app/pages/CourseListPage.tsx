@@ -2,8 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Layout } from '@/app/components/Layout';
 import { courseService, categoryService } from '@/services/api';
-import { usePaginatedApi } from '@/hooks';
-import { Search, Filter, Users, Star } from 'lucide-react';
+import { Search, Filter, Users, Star, ChevronLeft, ChevronRight } from 'lucide-react';
 
 interface Course {
   id: string;
@@ -14,99 +13,72 @@ interface Course {
   instructor_name: string;
   category_name: string;
   student_count: number;
-  status: 'active' | 'inactive' | 'published' | 'draft';
+  price: number;
+  status: string;
   created_at: string;
 }
 
 interface Category {
   id: string;
   name: string;
-  description: string;
 }
 
 export default function CourseListPage() {
   const [selectedCategory, setSelectedCategory] = useState<string | null>(null);
   const [searchQuery, setSearchQuery] = useState('');
   const [categories, setCategories] = useState<Category[]>([]);
-  const [categoriesLoading, setCategoriesLoading] = useState(true);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(1);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
 
-  const {
-    data: courses,
-    page,
-    totalPages,
-    loading: coursesLoading,
-    error: coursesError,
-    goToPage,
-  } = usePaginatedApi(async (pageNum, limit) => {
-    let response;
-    if (selectedCategory) {
-      response = await courseService.getByCategory(selectedCategory, pageNum, limit);
-    } else {
-      response = await courseService.getAll(pageNum, limit);
-    }
-    return { data: response.data, totalPages: response.totalPages };
-  });
-
+  // Load categories một lần
   useEffect(() => {
-    const loadCategories = async () => {
+    categoryService.getAll(1, 50).then((res: any) => {
+      setCategories(res.data || []);
+    }).catch(console.error);
+  }, []);
+
+  // Load courses mỗi khi category hoặc page thay đổi
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      setError('');
       try {
-        setCategoriesLoading(true);
-        const response = await categoryService.getAll(1, 50);
-        setCategories(response.data);
-      } catch (error) {
-        console.error('Failed to load categories:', error);
+        let res: any;
+        if (selectedCategory) {
+          res = await courseService.getByCategory(selectedCategory, page, 12);
+        } else {
+          res = await courseService.getAll(page, 12);
+        }
+        setCourses(res.data || []);
+        setTotalPages(res.totalPages || 1);
+      } catch (err: any) {
+        setError(err.message);
       } finally {
-        setCategoriesLoading(false);
+        setLoading(false);
       }
     };
-    loadCategories();
-  }, []);
+    load();
+  }, [selectedCategory, page]);
 
   const handleCategoryChange = (categoryId: string | null) => {
     setSelectedCategory(categoryId);
-    goToPage(1);
+    setPage(1); // reset về trang 1 khi đổi danh mục
+  };
+
+  const formatPrice = (price?: number) => {
+    if (!price || price === 0) return "Miễn phí";
+    return price.toLocaleString("vi-VN") + " VND";
   };
 
   const filteredCourses = searchQuery
-    ? courses.filter((c: Course) =>
+    ? courses.filter((c) =>
         c.title?.toLowerCase().includes(searchQuery.toLowerCase()) ||
         c.instructor_name?.toLowerCase().includes(searchQuery.toLowerCase())
       )
     : courses;
-
-  if (coursesLoading && page === 1) {
-    return (
-      <Layout>
-        <div className="min-h-screen bg-gray-50 py-12 px-4">
-          <div className="max-w-7xl mx-auto">
-            <div className="animate-pulse space-y-4">
-              {[...Array(6)].map((_, i) => (
-                <div key={i} className="h-40 bg-gray-200 rounded-lg"></div>
-              ))}
-            </div>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
-
-  if (coursesError) {
-    return (
-      <Layout>
-        <div className="min-h-screen bg-gray-50 py-12 px-4">
-          <div className="max-w-7xl mx-auto">
-            <div className="bg-red-50 border border-red-200 rounded-lg p-4 text-red-700">
-              <h2 className="font-bold mb-2">Đã xảy ra lỗi</h2>
-              <p>{coursesError}</p>
-              <button onClick={() => goToPage(1)} className="mt-4 bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700">
-                Thử lại
-              </button>
-            </div>
-          </div>
-        </div>
-      </Layout>
-    );
-  }
 
   return (
     <Layout>
@@ -118,16 +90,16 @@ export default function CourseListPage() {
           </div>
 
           {/* Filters */}
-          <div className="mb-8 bg-white rounded-lg shadow p-6">
-            <div className="mb-6">
+          <div className="mb-8 bg-white rounded-xl shadow-sm border p-6">
+            <div className="mb-5">
               <div className="relative">
-                <Search className="absolute left-3 top-3 text-gray-400 w-5 h-5" />
+                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-5 h-5" />
                 <input
                   type="text"
                   placeholder="Tìm kiếm khóa học..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="w-full pl-10 pr-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
+                  className="w-full pl-10 pr-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
                 />
               </div>
             </div>
@@ -136,51 +108,55 @@ export default function CourseListPage() {
                 <Filter className="w-4 h-4 mr-2" />
                 Danh mục
               </label>
-              {categoriesLoading ? (
-                <div className="text-gray-500">Đang tải danh mục...</div>
-              ) : (
-                <div className="flex flex-wrap gap-2">
+              <div className="flex flex-wrap gap-2">
+                <button
+                  onClick={() => handleCategoryChange(null)}
+                  className={`px-4 py-2 rounded-full text-sm font-medium transition ${
+                    selectedCategory === null ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
+                  }`}
+                >
+                  Tất cả
+                </button>
+                {categories.map((cat) => (
                   <button
-                    onClick={() => handleCategoryChange(null)}
+                    key={cat.id}
+                    onClick={() => handleCategoryChange(cat.id)}
                     className={`px-4 py-2 rounded-full text-sm font-medium transition ${
-                      selectedCategory === null ? 'bg-orange-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
+                      selectedCategory === cat.id ? 'bg-orange-500 text-white' : 'bg-gray-100 text-gray-700 hover:bg-gray-200'
                     }`}
                   >
-                    Tất cả
+                    {cat.name}
                   </button>
-                  {categories.map((category) => (
-                    <button
-                      key={category.id}
-                      onClick={() => handleCategoryChange(category.id)}
-                      className={`px-4 py-2 rounded-full text-sm font-medium transition ${
-                        selectedCategory === category.id ? 'bg-orange-600 text-white' : 'bg-gray-200 text-gray-700 hover:bg-gray-300'
-                      }`}
-                    >
-                      {category.name}
-                    </button>
-                  ))}
-                </div>
-              )}
+                ))}
+              </div>
             </div>
           </div>
 
-          {/* Courses Grid */}
-          {filteredCourses.length === 0 ? (
-            <div className="text-center py-12">
-              <p className="text-gray-500 text-lg">Không tìm thấy khóa học nào.</p>
+          {/* Content */}
+          {loading ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+              {[...Array(6)].map((_, i) => (
+                <div key={i} className="animate-pulse bg-white rounded-xl h-72 border" />
+              ))}
+            </div>
+          ) : error ? (
+            <div className="text-center py-12 text-red-500">{error}</div>
+          ) : filteredCourses.length === 0 ? (
+            <div className="text-center py-12 text-gray-500 text-lg">
+              Không tìm thấy khóa học nào.
             </div>
           ) : (
-            <div>
+            <>
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 mb-8">
-                {filteredCourses.map((course: Course) => (
+                {filteredCourses.map((course) => (
                   <Link
                     key={course.id}
                     to={`/courses/${course.slug || course.id}`}
-                    className="bg-white rounded-lg shadow hover:shadow-lg transition overflow-hidden"
+                    className="bg-white rounded-xl border hover:shadow-lg transition overflow-hidden group"
                   >
-                    <div className="w-full h-40 bg-gray-200 relative overflow-hidden">
+                    <div className="w-full h-44 bg-gray-100 overflow-hidden">
                       {course.thumbnail ? (
-                        <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover hover:scale-105 transition" />
+                        <img src={course.thumbnail} alt={course.title} className="w-full h-full object-cover group-hover:scale-105 transition duration-300" />
                       ) : (
                         <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-orange-400 to-orange-600">
                           <span className="text-white text-4xl">📚</span>
@@ -188,27 +164,34 @@ export default function CourseListPage() {
                       )}
                     </div>
                     <div className="p-4">
-                      <div className="mb-2">
-                        <span className="inline-block bg-orange-100 text-orange-800 text-xs font-semibold px-3 py-1 rounded-full">
-                          {course.category_name || 'Chung'}
-                        </span>
-                      </div>
-                      <h3 className="font-bold text-lg text-gray-900 mb-2 line-clamp-2 hover:text-orange-600">
+                      <span className="inline-block bg-orange-100 text-orange-700 text-xs font-semibold px-3 py-1 rounded-full mb-2">
+                        {course.category_name || 'Chung'}
+                      </span>
+                      <h3 className="font-bold text-lg text-gray-900 mb-1 line-clamp-2 group-hover:text-orange-500 transition">
                         {course.title}
                       </h3>
-                      <p className="text-sm text-gray-600 mb-4 line-clamp-2">{course.description}</p>
+                      <p className="text-sm text-gray-500 mb-3 line-clamp-2">{course.description}</p> 
                       <p className="text-sm text-gray-700 mb-3">
-                        <strong>Giảng viên:</strong> {course.instructor_name}
+                        <span className="text-gray-400">Giảng viên:</span> {course.instructor_name}
                       </p>
-                      <div className="flex items-center justify-between text-sm text-gray-600">
-                        <div className="flex items-center">
-                          <Users className="w-4 h-4 mr-1" />
+                      <div className="flex items-center justify-between text-sm text-gray-500">
+                        <div className="flex items-center gap-1">
+                          <Users className="w-4 h-4" />
                           <span>{course.student_count || 0} học viên</span>
                         </div>
-                        <div className="flex items-center">
-                          <Star className="w-4 h-4 mr-1 fill-yellow-400 text-yellow-400" />
-                          <span>4.5</span>
+                        <div className="flex items-center gap-1">
+                          <Star className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+                          <span>4.9</span>
                         </div>
+                      </div>
+                      <hr className="border-t border-gray-200 my-3" />
+                      <div className="flex items-center justify-between">
+                        <div className="text-xl font-bold text-orange-600">
+                          {formatPrice(course.price)}
+                        </div>
+                        <span className="bg-orange-500 text-white text-sm px-4 py-2 rounded-lg group-hover:bg-orange-600 transition">
+                          Xem chi tiết
+                        </span>
                       </div>
                     </div>
                   </Link>
@@ -217,31 +200,27 @@ export default function CourseListPage() {
 
               {/* Pagination */}
               {totalPages > 1 && (
-                <div className="flex items-center justify-center gap-4">
+                <div className="flex items-center justify-center gap-3">
                   <button
-                    onClick={() => goToPage(page - 1)}
+                    onClick={() => setPage(p => Math.max(1, p - 1))}
                     disabled={page === 1}
-                    className={`px-4 py-2 rounded-lg font-medium transition ${
-                      page === 1 ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-orange-600 text-white hover:bg-orange-700'
-                    }`}
+                    className="flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium transition disabled:opacity-40 disabled:cursor-not-allowed bg-white border hover:bg-gray-50"
                   >
-                    ← Trang trước
+                    <ChevronLeft className="w-4 h-4" /> Trang trước
                   </button>
-                  <div className="text-gray-700 font-medium">
-                    Trang <span className="font-bold">{page}</span> / {totalPages}
-                  </div>
+                  <span className="text-gray-700 font-medium">
+                    {page} / {totalPages}
+                  </span>
                   <button
-                    onClick={() => goToPage(page + 1)}
+                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
                     disabled={page === totalPages}
-                    className={`px-4 py-2 rounded-lg font-medium transition ${
-                      page === totalPages ? 'bg-gray-200 text-gray-400 cursor-not-allowed' : 'bg-orange-600 text-white hover:bg-orange-700'
-                    }`}
+                    className="flex items-center gap-1 px-4 py-2 rounded-lg text-sm font-medium transition disabled:opacity-40 disabled:cursor-not-allowed bg-white border hover:bg-gray-50"
                   >
-                    Trang sau →
+                    Trang sau <ChevronRight className="w-4 h-4" />
                   </button>
                 </div>
               )}
-            </div>
+            </>
           )}
         </div>
       </div>
