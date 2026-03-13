@@ -1,0 +1,231 @@
+import Course from '../models/Course.js';
+import User from '../models/User.js';
+
+// TẠO COURSE MỚI
+export const createCourse = async (req, res) => {
+  try {
+    const { title, description, thumbnail, price, status } = req.body;
+    const categoryId = req.body.categoryId ?? req.body.category_id;
+    const instructorId = req.user.id;
+
+    if (!title || !description) {
+      return res.status(400).json({ error: 'Vui lòng điền đủ thông tin' });
+    }
+
+    const course = await Course.create(
+      title,
+      description,
+      thumbnail || null,
+      instructorId,
+      categoryId || null,
+      price || 0,
+      status || 'published'
+    );
+
+    res.status(201).json({ message: 'Tạo khóa học thành công', course });
+  } catch (error) {
+    console.error('Create course error:', error);
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+};
+
+// LẤY TẤT CẢ COURSES (public)
+export const getAllCourses = async (req, res) => {
+  try {
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    const courses = await Course.findAll(limit, offset);
+    const total = await Course.count();
+
+    res.json({
+      data: courses,
+      pagination: {
+        total,
+        page,
+        limit,
+        pages: Math.ceil(total / limit),
+      },
+    });
+  } catch (error) {
+    console.error('Get all courses error:', error);
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+};
+
+// LẤY COURSE THEO ID
+export const getCourseById = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const course = await Course.findById(id);
+    if (!course) {
+      return res.status(404).json({ error: 'Khóa học không tồn tại' });
+    }
+
+    res.json({ course });
+  } catch (error) {
+    console.error('Get course by id error:', error);
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+};
+
+// LẤY COURSE THEO SLUG
+export const getCourseBySlug = async (req, res) => {
+  try {
+    const { slug } = req.params;
+
+    const course = await Course.findBySlug(slug);
+    if (!course) {
+      return res.status(404).json({ error: 'Khóa học không tồn tại' });
+    }
+
+    res.json({ course });
+  } catch (error) {
+    console.error('Get course by slug error:', error);
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+};
+
+// LẤY COURSES CỦA INSTRUCTOR
+export const getInstructorCourses = async (req, res) => {
+  try {
+    const instructorId = req.user.id;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    const courses = await Course.findByInstructor(instructorId, limit, offset);
+
+    res.json({
+      data: courses,
+      pagination: {
+        page,
+        limit,
+        total: courses.length,
+      },
+    });
+  } catch (error) {
+    console.error('Get instructor courses error:', error);
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+};
+
+// LẤY COURSES THEO CATEGORY
+export const getCoursesByCategory = async (req, res) => {
+  try {
+    const { categoryId } = req.params;
+    const page = parseInt(req.query.page) || 1;
+    const limit = parseInt(req.query.limit) || 10;
+    const offset = (page - 1) * limit;
+
+    const courses = await Course.findByCategory(categoryId, limit, offset);
+
+    res.json({
+      data: courses,
+      pagination: {
+        page,
+        limit,
+      },
+    });
+  } catch (error) {
+    console.error('Get courses by category error:', error);
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+};
+
+// CẬP NHẬT COURSE
+export const updateCourse = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { title, description, thumbnail } = req.body;
+    // Nhận cả 2 dạng: categoryId (camelCase) và category_id (snake_case)
+    const categoryId = req.body.categoryId ?? req.body.category_id;
+
+    const course = await Course.findById(id);
+    if (!course) {
+      return res.status(404).json({ error: 'Khóa học không tồn tại' });
+    }
+
+    if (req.user.role !== 'admin' && req.user.id !== course.instructor_id) {
+      return res.status(403).json({ error: 'Không có quyền cập nhật khóa học này' });
+    }
+
+    if (!title || !description) {
+      return res.status(400).json({ error: 'Vui lòng điền đủ thông tin' });
+    }
+
+    const updatedCourse = await Course.update(
+      id,
+      title,
+      description,
+      thumbnail !== undefined ? thumbnail : course.thumbnail,
+      categoryId || course.category_id
+    );
+
+    res.json({
+      message: 'Cập nhật khóa học thành công',
+      course: updatedCourse,
+    });
+  } catch (error) {
+    console.error('Update course error:', error);
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+};
+
+// XÓA COURSE
+export const deleteCourse = async (req, res) => {
+  try {
+    const { id } = req.params;
+
+    const course = await Course.findById(id);
+    if (!course) {
+      return res.status(404).json({ error: 'Khóa học không tồn tại' });
+    }
+
+    if (req.user.role !== 'admin' && req.user.id !== course.instructor_id) {
+      return res.status(403).json({ error: 'Không có quyền xóa khóa học này' });
+    }
+
+    await Course.delete(id);
+
+    res.json({ message: 'Xóa khóa học thành công' });
+  } catch (error) {
+    console.error('Delete course error:', error);
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+};
+
+// CẬP NHẬT STATUS COURSE
+export const updateCourseStatus = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { status } = req.body;
+
+    // Cho phép cả 2 bộ giá trị status
+    const validStatuses = ['active', 'inactive', 'published', 'draft'];
+    if (!validStatuses.includes(status)) {
+      return res.status(400).json({ error: 'Status không hợp lệ' });
+    }
+
+    const course = await Course.findById(id);
+    if (!course) {
+      return res.status(404).json({ error: 'Khóa học không tồn tại' });
+    }
+
+    if (req.user.role !== 'admin' && req.user.id !== course.instructor_id) {
+      return res.status(403).json({ error: 'Không có quyền cập nhật khóa học này' });
+    }
+
+    const updatedCourse = await Course.updateStatus(id, status);
+
+    res.json({
+      message: 'Cập nhật trạng thái khóa học thành công',
+      course: updatedCourse,
+    });
+  } catch (error) {
+    console.error('Update course status error:', error);
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+};
