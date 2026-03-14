@@ -19,6 +19,9 @@ import CategoryManagementPage from '@/app/pages/admin/CategoryManagementPage';
 import ReportsPage from '@/app/pages/admin/ReportsPage';
 import AdminLessonManagementPage from '@/app/pages/admin/AdminLessonManagementPage';
 import ForgotPasswordPage from '@/app/pages/ForgotPasswordPage';
+import PaymentPage from '@/app/pages/PaymentPage';
+import NotFoundPage from '@/app/pages/NotFoundPage';
+
 
 
 export default function App() {
@@ -33,6 +36,8 @@ export default function App() {
           <Route path="/forgot-password" element={<ForgotPasswordPage />} />
           <Route path="/courses" element={<CourseListPage />} />
           <Route path="/courses/:slug" element={<CourseDetailsPage />} />
+          <Route path="/payment/:courseId" element={<PaymentPage />} />
+          <Route path="*" element={<NotFoundPage />} />
 
           {/* Protected Student Routes */}
           <Route

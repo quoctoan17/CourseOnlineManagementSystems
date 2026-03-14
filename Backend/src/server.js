@@ -11,6 +11,8 @@ import lessonRoutes from './routes/lessonRoutes.js';
 import enrollmentRoutes from './routes/enrollmentRoutes.js';
 import progressRoutes from './routes/progressRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
+import paymentRoutes from './routes/paymentRoutes.js';
+
 
 dotenv.config();
 
@@ -35,6 +37,8 @@ app.use('/api/lessons', lessonRoutes);
 app.use('/api/enrollments', enrollmentRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/reports', reportRoutes);
+app.use('/api/payments', paymentRoutes);
+
 
 // Error Handling Middleware
 app.use((err, req, res, next) => {
@@ -51,8 +55,8 @@ app.use((req, res) => {
 
 // Start Server
 app.listen(PORT, () => {
-  console.log(`🚀 Server chạy trên http://localhost:${PORT}`);
-  console.log(`📝 API Documentation: http://localhost:${PORT}/api`);
+  console.log(`-- Server chạy trên http://localhost:${PORT} --`);
+  console.log(`-- API Documentation: http://localhost:${PORT}/api --`);
 });
 
 export default app;

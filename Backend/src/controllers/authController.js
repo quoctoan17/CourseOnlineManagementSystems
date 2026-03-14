@@ -94,24 +94,20 @@ export const checkEmailForReset = async (req, res) => {
   try {
     const { email } = req.body;
 
-    const user = await pool.query(
-      "SELECT * FROM users WHERE LOWER(email) = LOWER($1)",
-      [email.trim()]
-    );
-
-    if (user.rows.length === 0) {
-      return res.status(404).json({
-        message: "Email không tồn tại"
-      });
+    if (!email) {
+      return res.status(400).json({ message: "Vui lòng nhập email" });
     }
 
-    return res.json({
-      message: "Email hợp lệ",
-      exists: true
-    });
+    const user = await User.findByEmail(email.trim());
+
+    if (!user) {
+      return res.status(404).json({ message: "Email không tồn tại" });
+    }
+
+    return res.json({ message: "Email hợp lệ", exists: true });
 
   } catch (error) {
-    console.error(error);
+    console.error("checkEmailForReset error:", error);
     res.status(500).json({ message: "Server error" });
   }
 };

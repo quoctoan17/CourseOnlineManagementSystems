@@ -89,15 +89,16 @@ export const authService = {
       body: { currentPassword, newPassword, confirmPassword },
     }),
     checkEmail: (email: string) =>
-    apiRequest("/auth/check-email", {
-      method: "POST",
-      body: { email },
-    }),
-  resetPassword: (email: string, newPassword: string, confirmPassword: string) =>
-    apiRequest("/auth/reset-password", {
-      method: "POST",
-      body: { email, newPassword, confirmPassword },
-    }),
+      apiRequest("/auth/check-email", {
+        method: "POST",
+        body: { email },
+      }),
+
+    resetPassword: (email: string, newPassword: string, confirmPassword: string) =>
+      apiRequest("/auth/reset-password", {
+        method: "POST",
+        body: { email, newPassword, confirmPassword },
+  }),
 };
 
 // ============== USER ENDPOINTS ==============
@@ -167,6 +168,8 @@ export const courseService = {
     if (categoryId) url += `&category_id=${categoryId}`;
     return apiRequest(url);
   },
+
+  getPopular: () => apiRequest('/courses/popular'),
 
   getById: (id: string) =>
     apiRequest(`/courses/${id}`),
@@ -260,6 +263,21 @@ export const enrollmentService = {
     apiRequest(`/enrollments/${courseId}/status`, {
       method: 'PATCH',
       body: { status },
+    }),
+};
+
+// ============== PAYMENT ENDPOINTS ==============
+export const paymentService = {
+  create: (course_id: string) =>
+    apiRequest('/payments', {
+      method: 'POST',
+      body: { course_id },
+    }),
+
+  confirm: (payment_id: number) =>
+    apiRequest('/payments/confirm', {
+      method: 'POST',
+      body: { payment_id },
     }),
 };
 

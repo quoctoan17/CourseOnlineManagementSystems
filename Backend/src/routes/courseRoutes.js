@@ -9,6 +9,7 @@ import {
   updateCourse,
   deleteCourse,
   updateCourseStatus,
+  getPopularCourses,
 } from '../controllers/courseController.js';
 import { authMiddleware, instructorMiddleware } from '../middleware/auth.js';
 
@@ -18,6 +19,7 @@ const router = express.Router();
 router.get('/', getAllCourses);
 router.get('/by-category/:categoryId', getCoursesByCategory);
 router.get('/category/:categoryId', getCoursesByCategory);
+router.get('/popular', getPopularCourses);
 router.get('/slug/:slug', getCourseBySlug); 
 router.get('/:id', getCourseById);
 

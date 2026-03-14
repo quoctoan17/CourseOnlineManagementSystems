@@ -60,7 +60,7 @@ export default function AdminLessonManagementPage() {
       setShowAddModal(false); setForm(EMPTY_FORM); await fetchData();
       // Nhảy đến trang cuối sau khi thêm
       setPage(Math.ceil((lessons.length + 1) / PAGE_SIZE));
-      showToast('✅ Tạo bài học thành công');
+      showToast('Tạo bài học thành công');
     } catch (err: any) { alert('Lỗi: ' + err.message); } finally { setSaving(false); }
   };
 
@@ -80,7 +80,7 @@ export default function AdminLessonManagementPage() {
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Lỗi');
-      setShowEditModal(false); await fetchData(); showToast('✅ Cập nhật thành công');
+      setShowEditModal(false); await fetchData(); showToast('Cập nhật thành công');
     } catch (err: any) { alert('Lỗi: ' + err.message); } finally { setSaving(false); }
   };
 
@@ -96,7 +96,7 @@ export default function AdminLessonManagementPage() {
       const newTotal = lessons.length - 1;
       const newTotalPages = Math.ceil(newTotal / PAGE_SIZE);
       if (page > newTotalPages) setPage(Math.max(1, newTotalPages));
-      showToast('✅ Xóa thành công');
+      showToast('Xóa thành công');
     } catch (err: any) { alert('Lỗi: ' + err.message); } finally { setSaving(false); }
   };
 

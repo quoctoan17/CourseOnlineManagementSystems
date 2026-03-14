@@ -235,7 +235,7 @@ export default function CourseManagementPage() {
           {[
             { label: 'Tổng khóa học', value: courses.length },
             { label: 'Đã xuất bản', value: courses.filter((c) => c.status === 'published' || c.status === 'active').length },
-            { label: 'Tổng học viên', value: courses.reduce((sum, c) => sum + (parseInt(c.student_count) || 0), 0) },
+            { label: 'Tổng số lượng đăng kí', value: courses.reduce((sum, c) => sum + (parseInt(c.student_count) || 0), 0) },
           ].map((s, i) => (
             <div key={i} className="bg-white rounded-lg border p-6">
               <p className="text-gray-600 mb-1">{s.label}</p>

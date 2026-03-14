@@ -37,11 +37,13 @@ class Course {
     return result.rows[0];
   }
 
+  
+
   // Lấy course theo ID
   static async findById(id) {
     const query = `
       SELECT 
-        c.id, c.title, c.description, c.thumbnail, c.instructor_id, c.category_id, c.created_at, c.slug,
+        c.id, c.title, c.description, c.thumbnail, c.instructor_id, c.category_id, c.created_at, c.slug, c.price, c.status,
         u.full_name as instructor_name, u.email as instructor_email,
         cat.name as category_name
       FROM courses c
@@ -142,14 +144,14 @@ class Course {
   }
 
   // Cập nhật course
-  static async update(id, title, description, thumbnail, categoryId) {
+  static async update(id, title, description, thumbnail, categoryId, price = 0) {
     const query = `
       UPDATE courses 
-      SET title = $1, description = $2, thumbnail = $3, category_id = $4
-      WHERE id = $5
-      RETURNING id, title, description, thumbnail, instructor_id, category_id, status, slug, created_at
+      SET title = $1, description = $2, thumbnail = $3, category_id = $4, price = $5
+      WHERE id = $6
+      RETURNING id, title, description, thumbnail, instructor_id, category_id, price, status, slug, created_at
     `;
-    const result = await pool.query(query, [title, description, thumbnail, categoryId, id]);
+    const result = await pool.query(query, [title, description, thumbnail, categoryId, price, id]);
     return result.rows[0];
   }
 

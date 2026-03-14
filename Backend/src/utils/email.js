@@ -31,9 +31,9 @@ export const sendRegistrationEmail = async (email, fullName) => {
     };
 
     await transporter.sendMail(mailOptions);
-    console.log(`✅ Email đăng ký gửi thành công cho ${email}`);
+    console.log(`-- Email đăng ký gửi thành công cho ${email}`);
   } catch (error) {
-    console.error('❌ Lỗi gửi email đăng ký:', error);
+    console.error('-- Lỗi gửi email đăng ký:', error);
     // Không throw error, để app tiếp tục hoạt động
   }
 };

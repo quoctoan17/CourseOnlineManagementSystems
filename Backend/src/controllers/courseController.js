@@ -1,5 +1,6 @@
 import Course from '../models/Course.js';
 import Lesson from '../models/Lesson.js';
+import pool from '../config/database.js';
 
 export const createCourse = async (req, res) => {
   try {
@@ -37,6 +38,31 @@ export const getCourseById = async (req, res) => {
     res.json({ course });
   } catch (error) {
     console.error('Get course by id error:', error);
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+};
+
+// courseController.js — thêm hàm này
+export const getPopularCourses = async (req, res) => {
+  try {
+    const query = `
+      SELECT 
+        c.id, c.title, c.description, c.thumbnail, c.slug, c.price,
+        u.full_name as instructor_name,
+        cat.name as category_name,
+        COUNT(DISTINCT e.user_id) as student_count
+      FROM courses c
+      LEFT JOIN users u ON c.instructor_id = u.id
+      LEFT JOIN categories cat ON c.category_id = cat.id
+      LEFT JOIN enrollments e ON c.id = e.course_id
+      GROUP BY c.id, u.full_name, cat.name
+      ORDER BY student_count DESC
+      LIMIT 5
+    `;
+    const result = await pool.query(query);
+    res.json({ data: result.rows });
+  } catch (error) {
+    console.error('Get popular courses error:', error);
     res.status(500).json({ error: 'Lỗi server' });
   }
 };
@@ -91,13 +117,18 @@ export const getCoursesByCategory = async (req, res) => {
 export const updateCourse = async (req, res) => {
   try {
     const { id } = req.params;
-    const { title, description, thumbnail } = req.body;
+    const { title, description, thumbnail, price } = req.body;
     const categoryId = req.body.categoryId ?? req.body.category_id;
     const course = await Course.findById(id);
     if (!course) return res.status(404).json({ error: 'Khóa học không tồn tại' });
     if (req.user.role !== 'admin' && req.user.id !== course.instructor_id) return res.status(403).json({ error: 'Không có quyền cập nhật' });
     if (!title || !description) return res.status(400).json({ error: 'Vui lòng điền đủ thông tin' });
-    const updatedCourse = await Course.update(id, title, description, thumbnail !== undefined ? thumbnail : course.thumbnail, categoryId || course.category_id);
+    const updatedCourse = await Course.update(
+      id, title, description,
+      thumbnail !== undefined ? thumbnail : course.thumbnail,
+      categoryId || course.category_id,
+      price !== undefined ? parseInt(price) || 0 : course.price
+    );
     res.json({ message: 'Cập nhật khóa học thành công', course: updatedCourse });
   } catch (error) {
     console.error('Update course error:', error);

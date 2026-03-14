@@ -1,50 +1,39 @@
 import { useState } from "react";
-import { Layout } from "@app/components/Layout";
-import { Link } from "react-router-dom";
-import axios from "axios";
+import { Link, useNavigate } from "react-router-dom";
+import { authService } from "@/services/api";  
 
 export default function ForgotPasswordPage() {
+  const navigate = useNavigate();
   const [step, setStep] = useState(1);
-
   const [email, setEmail] = useState("");
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
-
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
 
-  // STEP 1: check email
   const handleCheckEmail = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setMessage("");
-
     try {
-      await axios.post("/auth/check-email", { email });
-
+      await authService.checkEmail(email);  // ← dùng authService
       setStep(2);
       setMessage("Email hợp lệ, hãy nhập mật khẩu mới");
     } catch (err: any) {
-      setError(err.response?.data?.error || "Email không tồn tại");
+      setError(err.message || "Email không tồn tại");
     }
   };
 
-  // STEP 2: reset password
   const handleResetPassword = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
     setMessage("");
-
     try {
-      await axios.post("/auth/reset-password", {
-        email,
-        newPassword,
-        confirmPassword,
-      });
-
+      await authService.resetPassword(email, newPassword, confirmPassword);  // ← dùng authService
       setMessage("Đổi mật khẩu thành công. Bạn có thể đăng nhập lại.");
+      setTimeout(() => navigate("/login"), 1500);
     } catch (err: any) {
-      setError(err.response?.data?.error || "Không thể đổi mật khẩu");
+      setError(err.message || "Không thể đổi mật khẩu");
     }
   };
 

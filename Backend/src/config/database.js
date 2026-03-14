@@ -18,11 +18,11 @@ const pool = new Pool({
 });
 
 pool.on('connect', () => {
-  console.log('✅ PostgreSQL database connected successfully');
+  console.log('-- PostgreSQL database connected successfully --');
 });
 
 pool.on('error', (err) => {
-  console.error('❌ Unexpected error on idle client', err);
+  console.error('-- Unexpected error on idle client --', err);
   process.exit(-1);
 });
 

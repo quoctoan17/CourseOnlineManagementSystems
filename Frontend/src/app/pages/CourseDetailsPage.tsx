@@ -4,8 +4,10 @@ import { Layout } from '@/app/components/Layout';
 import { useAuth } from '@/context/AuthContext';
 import { enrollmentService } from '@/services/api';
 import { Star, Users, Clock, ChevronRight, BookOpen } from 'lucide-react';
+import { paymentService } from '@/services/api';
+import { useNavigate } from 'react-router-dom';
 
-const API_BASE = 'http://localhost:3000/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 
 export default function CourseDetailsPage() {
   const { slug } = useParams<{ slug: string }>();
@@ -44,20 +46,31 @@ export default function CourseDetailsPage() {
     load();
   }, [slug, user]);
 
-  const handleEnroll = async () => {
-    if (!course?.id) return;
-    if (!user) { window.location.href = '/login'; return; }
+  const navigate = useNavigate();
+
+const handleEnroll = async () => {
+  if (!course?.id) return;
+  if (!user) { navigate('/login'); return; }
+
+  // Miễn phí → enroll thẳng
+  if (!course.price || Number(course.price) === 0) {
     setEnrolling(true);
     try {
       await enrollmentService.enroll(String(course.id));
       setIsEnrolled(true);
-      window.location.href = `/my-courses/${course.id}/lessons`;
+      navigate(`/my-courses/${course.id}/lessons`);
     } catch (err: any) {
       setError(err.message);
     } finally {
       setEnrolling(false);
     }
-  };
+    return;
+  }
+
+  // Có giá → chuyển sang trang payment
+  navigate(`/payment/${course.id}`, { state: { course } });
+};
+
 
   const getInitials = (name: string) => {
     if (!name) return '?';
@@ -67,7 +80,7 @@ export default function CourseDetailsPage() {
   const formatPrice = (price: any) => {
     if (!price || price === 0 || price === '0') return 'Miễn phí';
     return Number(price).toLocaleString('vi-VN') + ' VND';
-  };
+  };  
 
   return (
     <Layout>

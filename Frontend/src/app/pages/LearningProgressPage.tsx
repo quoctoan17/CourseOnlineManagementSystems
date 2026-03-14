@@ -1,38 +1,109 @@
 import { Layout } from '@/app/components/Layout';
 import { useEffect, useState } from 'react';
 import { TrendingUp, Award, Clock, Target } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, Legend, ResponsiveContainer, LineChart, Line } from 'recharts';
+import {
+  BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip,
+  ResponsiveContainer, LineChart, Line, Legend
+} from 'recharts';
 import { useAuth } from '@/context/AuthContext';
-import { useApi } from '@/hooks';
-import { progressService } from '@/services/api';
-
-const weeklyData = [
-  { day: 'T2', hours: 2.5 },
-  { day: 'T3', hours: 3.2 },
-  { day: 'T4', hours: 1.8 },
-  { day: 'T5', hours: 4.0 },
-  { day: 'T6', hours: 2.9 },
-  { day: 'T7', hours: 3.5 },
-  { day: 'CN', hours: 5.0 },
-];
-
-const monthlyProgress = [
-  { month: 'T1', completed: 2 },
-  { month: 'T2', completed: 3 },
-  { month: 'T3', completed: 4 },
-  { month: 'T4', completed: 3 },
-];
+import { progressService, enrollmentService } from '@/services/api';
 
 export default function LearningProgressPage() {
   const { user } = useAuth();
-  const { data: myProgress = [], loading, error } = useApi<any>(
-    async () => progressService.getMyProgress()
-  );
+  const [allProgress, setAllProgress] = useState<any[]>([]);
+  const [enrolledCourses, setEnrolledCourses] = useState<any[]>([]);
+  const [courseProgress, setCourseProgress] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
 
-  // compute some summary stats for demonstration
-  const totalLessonsCompleted = myProgress.filter((p: any) => p.completed).length;
-  const uniqueCourses = Array.from(new Set(myProgress.map((p: any) => p.course_id))).length;
-  // (hours not available, leave static)
+  useEffect(() => {
+    const load = async () => {
+      setLoading(true);
+      try {
+        // Lấy tất cả progress
+        const progressRes: any = await progressService.getMyProgress();
+        const progress = progressRes.data || [];
+        setAllProgress(progress);
+
+        // Lấy danh sách khóa học đã enroll
+        const enrollRes: any = await enrollmentService.getMyEnrolledCourses(1, 100);
+        const courses = enrollRes.data || [];
+        setEnrolledCourses(courses);
+
+        // Lấy tiến độ từng khóa học
+        const courseProgressList = await Promise.all(
+          courses.map(async (c: any) => {
+            try {
+              const res: any = await progressService.getStudentProgress(String(c.id || c.course_id));
+              return {
+                id: c.id || c.course_id,
+                title: c.title || c.course_title,
+                percent: Math.round(res.summary?.progressPercentage || 0),
+                completed: res.summary?.completedLessons || 0,
+                total: res.summary?.totalLessons || 0,
+              };
+            } catch {
+              return {
+                id: c.id || c.course_id,
+                title: c.title || c.course_title,
+                percent: 0,
+                completed: 0,
+                total: 0,
+              };
+            }
+          })
+        );
+        setCourseProgress(courseProgressList);
+      } catch (err) {
+        console.error(err);
+      } finally {
+        setLoading(false);
+      }
+    };
+    load();
+  }, []);
+
+  // Stats
+  const completedLessons = allProgress.filter((p: any) => p.completed).length;
+  const completedCourses = courseProgress.filter((c) => c.percent === 100).length;
+  const avgProgress = courseProgress.length
+    ? Math.round(courseProgress.reduce((s, c) => s + c.percent, 0) / courseProgress.length)
+    : 0;
+
+  // Giờ học ước tính (mỗi lesson ~15 phút)
+  const totalHours = Math.round((completedLessons * 15) / 60 * 10) / 10;
+
+  // Weekly chart — tính số bài hoàn thành theo ngày trong tuần hiện tại
+  const days = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
+  const weeklyData = days.map((day, i) => {
+    const count = allProgress.filter((p: any) => {
+      if (!p.completed_at) return false;
+      const d = new Date(p.completed_at).getDay();
+      // getDay: 0=CN, 1=T2...6=T7
+      const mapped = d === 0 ? 6 : d - 1;
+      return mapped === i;
+    }).length;
+    return { day, lessons: count };
+  });
+
+  // Monthly chart — tính số bài hoàn thành theo tháng
+  const monthlyMap: Record<string, number> = {};
+  allProgress.forEach((p: any) => {
+    if (!p.completed_at || !p.completed) return;
+    const m = new Date(p.completed_at).getMonth() + 1;
+    const key = `T${m}`;
+    monthlyMap[key] = (monthlyMap[key] || 0) + 1;
+  });
+  const monthlyData = Object.entries(monthlyMap)
+    .map(([month, completed]) => ({ month, completed }))
+    .slice(-6);
+
+  if (loading) {
+    return (
+      <Layout>
+        <div className="flex items-center justify-center min-h-[400px] text-gray-500">Đang tải...</div>
+      </Layout>
+    );
+  }
 
   return (
     <Layout>
@@ -40,95 +111,79 @@ export default function LearningProgressPage() {
         <h1 className="text-3xl font-bold mb-8">Tiến độ học tập</h1>
 
         {/* Stats Cards */}
-        {loading && <p className="text-center py-4">Đang tải tiến độ...</p>}
-        {error && <p className="text-center py-4 text-red-600">Lỗi: {error}</p>}
-        {!loading && !error && (
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
-            <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
+          {[
+            { icon: <Clock className="h-8 w-8 text-blue-500" />, value: `${totalHours}h`, label: 'Tổng giờ học' },
+            { icon: <Award className="h-8 w-8 text-yellow-500" />, value: `${completedCourses}`, label: 'Khóa học hoàn thành' },
+            { icon: <Target className="h-8 w-8 text-green-500" />, value: `${avgProgress}%`, label: 'Tiến độ trung bình' },
+            { icon: <TrendingUp className="h-8 w-8 text-purple-500" />, value: `${completedLessons}`, label: 'Bài học đã hoàn thành' },
+          ].map((s, i) => (
+            <div key={i} className="bg-white rounded-xl border p-6">
               <div className="flex items-center justify-between mb-2">
-                <Clock className="h-8 w-8 text-orange-600" />
-                <span className="text-2xl font-bold">{/* static until hours tracked */}--h</span>
+                {s.icon}
+                <span className="text-2xl font-bold">{s.value}</span>
               </div>
-              <p className="text-gray-600">Tổng giờ học</p>
+              <p className="text-gray-600 text-sm">{s.label}</p>
             </div>
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <div className="flex items-center justify-between mb-2">
-                <Award className="h-8 w-8 text-yellow-600" />
-                <span className="text-2xl font-bold">{uniqueCourses}</span>
-              </div>
-              <p className="text-gray-600">Khóa học đã tham gia</p>
-            </div>
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <div className="flex items-center justify-between mb-2">
-                <Target className="h-8 w-8 text-green-600" />
-                <span className="text-2xl font-bold">{uniqueCourses ? Math.round((totalLessonsCompleted / uniqueCourses) * 10) : 0}%</span>
-              </div>
-              <p className="text-gray-600">Tiến độ trung bình</p>
-            </div>
-            <div className="bg-white rounded-lg shadow-md p-6">
-              <div className="flex items-center justify-between mb-2">
-                <TrendingUp className="h-8 w-8 text-purple-600" />
-                <span className="text-2xl font-bold">7</span>
-              </div>
-              <p className="text-gray-600">Ngày liên tục</p>
-            </div>
-          </div>
-        )}
+          ))}
+        </div>
 
         {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-bold mb-4">Giờ học trong tuần</h2>
-            <ResponsiveContainer width="100%" height={300}>
+          <div className="bg-white rounded-xl border p-6">
+            <h2 className="text-xl font-bold mb-4">Bài học hoàn thành trong tuần</h2>
+            <ResponsiveContainer width="100%" height={280}>
               <BarChart data={weeklyData}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="day" />
-                <YAxis />
+                <YAxis allowDecimals={false} />
                 <Tooltip />
-                <Bar dataKey="hours" fill="#2563eb" name="Giờ học" />
+                <Bar dataKey="lessons" fill="#f97316" name="Bài học" radius={[4,4,0,0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
 
-          <div className="bg-white rounded-lg shadow-md p-6">
-            <h2 className="text-xl font-bold mb-4">Khóa học hoàn thành theo tháng</h2>
-            <ResponsiveContainer width="100%" height={300}>
-              <LineChart data={monthlyProgress}>
+          <div className="bg-white rounded-xl border p-6">
+            <h2 className="text-xl font-bold mb-4">Bài học hoàn thành theo tháng</h2>
+            <ResponsiveContainer width="100%" height={280}>
+              <LineChart data={monthlyData.length > 0 ? monthlyData : [{ month: 'Chưa có', completed: 0 }]}>
                 <CartesianGrid strokeDasharray="3 3" />
                 <XAxis dataKey="month" />
-                <YAxis />
+                <YAxis allowDecimals={false} />
                 <Tooltip />
                 <Legend />
-                <Line type="monotone" dataKey="completed" stroke="#10b981" name="Khóa học" />
+                <Line type="monotone" dataKey="completed" stroke="#10b981" name="Bài học" strokeWidth={2} dot={{ r: 4 }} />
               </LineChart>
             </ResponsiveContainer>
           </div>
         </div>
 
         {/* Course Progress */}
-        <div className="bg-white rounded-lg shadow-md p-6">
+        <div className="bg-white rounded-xl border p-6">
           <h2 className="text-xl font-bold mb-6">Tiến độ từng khóa học</h2>
-          <div className="space-y-4">
-            {[
-              { name: 'React & TypeScript', progress: 45 },
-              { name: 'Node.js & Express', progress: 72 },
-              { name: 'UI/UX Design', progress: 30 },
-              { name: 'Digital Marketing', progress: 88 },
-            ].map((course, index) => (
-              <div key={index}>
-                <div className="flex items-center justify-between mb-2">
-                  <span className="font-medium">{course.name}</span>
-                  <span className="text-orange-600 font-semibold">{course.progress}%</span>
+          {courseProgress.length === 0 ? (
+            <p className="text-gray-500 text-center py-8">Bạn chưa tham gia khóa học nào</p>
+          ) : (
+            <div className="space-y-5">
+              {courseProgress.map((course) => (
+                <div key={course.id}>
+                  <div className="flex items-center justify-between mb-1.5">
+                    <span className="font-medium text-gray-900">{course.title}</span>
+                    <div className="flex items-center gap-3">
+                      <span className="text-sm text-gray-500">{course.completed}/{course.total} bài</span>
+                      <span className="text-orange-500 font-semibold min-w-[42px] text-right">{course.percent}%</span>
+                    </div>
+                  </div>
+                  <div className="w-full bg-gray-100 rounded-full h-2.5">
+                    <div
+                      className={`h-2.5 rounded-full transition-all duration-500 ${course.percent === 100 ? 'bg-green-500' : 'bg-orange-500'}`}
+                      style={{ width: `${course.percent}%` }}
+                    />
+                  </div>
                 </div>
-                <div className="w-full bg-gray-200 rounded-full h-3">
-                  <div
-                    className="bg-orange-600 h-3 rounded-full transition-all"
-                    style={{ width: `${course.progress}%` }}
-                  ></div>
-                </div>
-              </div>
-            ))}
-          </div>
+              ))}
+            </div>
+          )}
         </div>
       </div>
     </Layout>

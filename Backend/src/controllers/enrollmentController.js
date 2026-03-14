@@ -167,6 +167,7 @@ export const updateEnrollmentStatusByCourse = async (req, res) => {
 };
 
 // KIỂM TRA ĐĂNG KÝ
+// enrollmentController.js
 export const checkEnrollment = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -179,7 +180,7 @@ export const checkEnrollment = async (req, res) => {
     const enrollment = await Enrollment.findByUserAndCourse(userId, courseId);
 
     res.json({
-      enrolled: !!enrollment,
+      is_enrolled: !!enrollment,  // ← đổi "enrolled" thành "is_enrolled"
       enrollment: enrollment || null,
     });
   } catch (error) {
