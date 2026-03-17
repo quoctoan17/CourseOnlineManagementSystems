@@ -79,6 +79,26 @@ export const updateUser = async (req, res) => {
   }
 };
 
+//THÊM USER (chỉ admin)
+export const createUser = async (req, res) => {
+  try {
+    const { fullName, email, password, role } = req.body;
+    if (!fullName || !email || !password) {
+      return res.status(400).json({ error: 'Vui lòng điền đủ thông tin' });
+    }
+    const existing = await User.findByEmail(email);
+    if (existing) {
+      return res.status(400).json({ error: 'Email đã tồn tại' });
+    }
+    const hashedPassword = await hashPassword(password);
+    const user = await User.create(fullName, email, hashedPassword, role || 'student');
+    res.status(201).json({ message: 'Tạo người dùng thành công', user });
+  } catch (error) {
+    console.error('Create user error:', error);
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+};
+
 // XÓA USER (chỉ admin)
 export const deleteUser = async (req, res) => {
   try {

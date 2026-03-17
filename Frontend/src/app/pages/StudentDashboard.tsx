@@ -24,7 +24,12 @@ export default function StudentDashboard() {
     [courses]
   );
   const completedCount = useMemo(
-    () => courses.filter((c: any) => c.status === 'completed').length,
+    () => courses.filter((c: any) => {
+      const percent = c.total_lessons > 0
+        ? Math.round((c.completed_lessons / c.total_lessons) * 100)
+        : 0;
+      return percent === 100;
+    }).length,
     [courses]
   );
   const totalLessons = useMemo(
@@ -176,7 +181,7 @@ export default function StudentDashboard() {
               <h2 className="text-2xl font-bold mb-6">Thành tựu gần đây</h2>
               <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
                 {[
-                  { title: `Hoàn thành ${completedCount.length || 0} khóa học`, icon: Award, color: 'text-yellow-500' },
+                  { title: `Hoàn thành ${completedCount} khóa học`, icon: Award, color: 'text-yellow-500' },
                   { title: '7 ngày liên tục', icon: TrendingUp, color: 'text-green-500' },
                   { title: 'Top 10% học viên', icon: TrendingUp, color: 'text-purple-500' },
                 ].map((achievement, index) => {

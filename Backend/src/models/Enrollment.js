@@ -41,7 +41,21 @@ class Enrollment {
         cat.name as category_name,
         e.enrolled_at, e.status,
         COUNT(l.id) as total_lessons,
-        COUNT(CASE WHEN p.completed = true THEN 1 END) as completed_lessons
+        COUNT(CASE WHEN p.completed = true THEN 1 END) as completed_lessons,
+        SUM(
+          CASE 
+            WHEN l.duration IS NOT NULL AND l.duration ~ '^\d+:\d+$'
+            THEN (SPLIT_PART(l.duration, ':', 1)::int * 60 + SPLIT_PART(l.duration, ':', 2)::int)
+            ELSE 0
+          END
+        ) as total_duration_seconds,
+        SUM(
+          CASE 
+            WHEN p.completed = true AND l.duration IS NOT NULL AND l.duration ~ '^\d+:\d+$'
+            THEN (SPLIT_PART(l.duration, ':', 1)::int * 60 + SPLIT_PART(l.duration, ':', 2)::int)
+            ELSE 0
+          END
+        ) as completed_duration_seconds
       FROM enrollments e
       JOIN courses c ON e.course_id = c.id
       LEFT JOIN users u ON c.instructor_id = u.id

@@ -8,7 +8,7 @@ function authHeaders() { return { 'Content-Type': 'application/json', Authorizat
 
 const ROLES = { admin: 'Quản trị viên', instructor: 'Giảng viên', student: 'Học viên' };
 const ROLE_COLORS = { admin: 'bg-purple-100 text-purple-800', instructor: 'bg-orange-100 text-orange-800', student: 'bg-gray-100 text-gray-800' };
-const EMPTY_FORM = { full_name: '', email: '', password: '', role: 'student' };
+const EMPTY_FORM = { fullName: '', email: '', password: '', role: 'student' };
 
 export default function UserManagementPage() {
   const [users, setUsers] = useState([]);
@@ -37,36 +37,40 @@ export default function UserManagementPage() {
   useEffect(() => { fetchUsers(); }, []);
 
   const handleAdd = async () => {
-    if (!form.full_name || !form.email || !form.password) { alert('Vui lòng điền đầy đủ thông tin'); return; }
+    if (!form.fullName || !form.email || !form.password) { alert('Vui lòng điền đầy đủ thông tin'); return; }
     setSaving(true);
     try {
       const res = await fetch(`${API_BASE}/users`, {
         method: 'POST', headers: authHeaders(),
-        body: JSON.stringify({ full_name: form.full_name, email: form.email, password: form.password, role: form.role }),
+        body: JSON.stringify({ fullName: form.fullName, email: form.email, password: form.password, role: form.role }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Lỗi');
-      setShowAddModal(false); setForm(EMPTY_FORM); await fetchUsers(); showToast('✅ Tạo người dùng thành công');
+      setShowAddModal(false); setForm(EMPTY_FORM); await fetchUsers(); showToast('Tạo người dùng thành công');
     } catch (err) { alert('Lỗi: ' + err.message); } finally { setSaving(false); }
   };
 
   const openEdit = (u) => {
     setSelected(u);
-    setForm({ full_name: u.full_name || u.name || '', email: u.email || '', password: '', role: u.role || 'student' });
+    setForm({ 
+    fullName: u.full_name || u.name || '', 
+    email: u.email || '', 
+    password: '', 
+    role: u.role || 'student' });
     setShowEditModal(true);
   };
 
   const handleEdit = async () => {
     setSaving(true);
     try {
-      const body = { full_name: form.full_name, email: form.email, role: form.role };
+      const body = { fullName: form.fullName, email: form.email, role: form.role };
       if (form.password) body.password = form.password;
       const res = await fetch(`${API_BASE}/users/${selected.id}`, {
         method: 'PUT', headers: authHeaders(), body: JSON.stringify(body),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Lỗi');
-      setShowEditModal(false); await fetchUsers(); showToast('✅ Cập nhật thành công');
+      setShowEditModal(false); await fetchUsers(); showToast('Cập nhật thành công');
     } catch (err) { alert('Lỗi: ' + err.message); } finally { setSaving(false); }
   };
 
@@ -76,12 +80,12 @@ export default function UserManagementPage() {
       const res = await fetch(`${API_BASE}/users/${selected.id}`, { method: 'DELETE', headers: authHeaders() });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Lỗi');
-      setShowDeleteModal(false); await fetchUsers(); showToast('✅ Xóa thành công');
+      setShowDeleteModal(false); await fetchUsers(); showToast('Xóa thành công');
     } catch (err) { alert('Lỗi: ' + err.message); } finally { setSaving(false); }
   };
 
   const filtered = users.filter((u) => {
-    const name = u.full_name || u.name || '';
+    const name = u.fullName || u.name || '';
     const matchSearch = name.toLowerCase().includes(searchTerm.toLowerCase()) || u.email?.toLowerCase().includes(searchTerm.toLowerCase());
     const matchRole = roleFilter === 'all' || u.role === roleFilter;
     return matchSearch && matchRole;
@@ -91,7 +95,7 @@ export default function UserManagementPage() {
     <div className="space-y-4">
       <div>
         <label className="block text-sm font-medium text-gray-700 mb-1">Họ tên</label>
-        <input type="text" value={form.full_name} onChange={(e) => setForm(f => ({ ...f, full_name: e.target.value }))}
+        <input type="text" value={form.fullName} onChange={(e) => setForm(f => ({ ...f, fullName: e.target.value }))}
           className="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500" placeholder="Nguyễn Văn A" />
       </div>
       <div>
@@ -258,7 +262,7 @@ export default function UserManagementPage() {
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4">
               <h2 className="text-xl font-bold mb-4">Xác nhận xóa</h2>
-              <p className="text-gray-600 mb-6">Bạn có chắc muốn xóa người dùng <strong>"{selected?.full_name || selected?.name}"</strong>?</p>
+              <p className="text-gray-600 mb-6">Bạn có chắc muốn xóa người dùng <strong>"{selected?.fullName || selected?.name}"</strong>?</p>
               <div className="flex gap-4">
                 <button onClick={handleDelete} disabled={saving} className="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 disabled:opacity-50">{saving ? 'Đang xóa...' : 'Xóa'}</button>
                 <button onClick={() => setShowDeleteModal(false)} className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-50">Hủy</button>
