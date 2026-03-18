@@ -18,6 +18,7 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+const BASE_URL = process.env.BASE_URL || `http://localhost:${PORT}`;
 
 // Middleware
 app.use(helmet()); // Security headers
@@ -55,8 +56,8 @@ app.use((req, res) => {
 
 // Start Server
 app.listen(PORT, () => {
-  console.log(`-- Server chạy trên http://localhost:${PORT} --`);
-  console.log(`-- API Documentation: http://localhost:${PORT}/api --`);
+  console.log(`-- Server chạy trên ${BASE_URL} --`);
+  console.log(`-- API Documentation: ${BASE_URL}/api --`);
 });
 
 export default app;

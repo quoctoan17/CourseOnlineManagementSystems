@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { Plus, Edit, Trash2, X, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
 
-const API_BASE = 'http://localhost:3000/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 const PAGE_SIZE = 7;
 
 function getToken() { return localStorage.getItem('token') || ''; }

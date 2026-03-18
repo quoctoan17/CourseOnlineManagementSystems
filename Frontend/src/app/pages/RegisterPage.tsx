@@ -73,7 +73,7 @@ export default function RegisterPage() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                placeholder="Nguyễn Văn A"
+                placeholder="Nhập tên của bạn!"
                 required
                 disabled={isLoading}
               />
@@ -89,7 +89,7 @@ export default function RegisterPage() {
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 className="w-full px-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-orange-500 focus:border-transparent"
-                placeholder="example@email.com"
+                placeholder="Nhập gmail của bạn!"
                 required
                 disabled={isLoading}
               />

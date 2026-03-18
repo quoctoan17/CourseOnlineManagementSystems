@@ -42,7 +42,6 @@ export const getCourseById = async (req, res) => {
   }
 };
 
-// courseController.js — thêm hàm này
 export const getPopularCourses = async (req, res) => {
   try {
     const query = `

@@ -2,7 +2,7 @@ import { AdminLayout } from "./AdminLayout";
 import { useState, useEffect } from 'react';
 import { Search, Edit, Trash2, UserPlus, Filter, X } from 'lucide-react';
 
-const API_BASE = 'http://localhost:3000/api';
+const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 function getToken() { return localStorage.getItem('token') || ''; }
 function authHeaders() { return { 'Content-Type': 'application/json', Authorization: `Bearer ${getToken()}` }; }
 
@@ -68,6 +68,7 @@ export default function UserManagementPage() {
       const res = await fetch(`${API_BASE}/users/${selected.id}`, {
         method: 'PUT', headers: authHeaders(), body: JSON.stringify(body),
       });
+      
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Lỗi');
       setShowEditModal(false); await fetchUsers(); showToast('Cập nhật thành công');
