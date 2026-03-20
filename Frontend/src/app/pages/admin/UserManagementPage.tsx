@@ -1,6 +1,7 @@
 import { AdminLayout } from "./AdminLayout";
 import { useState, useEffect } from 'react';
 import { Search, Edit, Trash2, UserPlus, Filter, X } from 'lucide-react';
+import { fetchWithAuth } from "@/utils/fetchWithAuth";
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 function getToken() { return localStorage.getItem('token') || ''; }
@@ -28,7 +29,7 @@ export default function UserManagementPage() {
   const fetchUsers = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`${API_BASE}/users?limit=100`, { headers: authHeaders() });
+      const res = await fetchWithAuth(`${API_BASE}/users?limit=100`, { headers: authHeaders() });
       const data = await res.json();
       setUsers(data.data || data.users || []);
     } catch (err) { console.error(err); } finally { setLoading(false); }
@@ -40,7 +41,7 @@ export default function UserManagementPage() {
     if (!form.fullName || !form.email || !form.password) { alert('Vui lòng điền đầy đủ thông tin'); return; }
     setSaving(true);
     try {
-      const res = await fetch(`${API_BASE}/users`, {
+      const res = await fetchWithAuth(`${API_BASE}/users`, {
         method: 'POST', headers: authHeaders(),
         body: JSON.stringify({ fullName: form.fullName, email: form.email, password: form.password, role: form.role }),
       });
@@ -65,7 +66,7 @@ export default function UserManagementPage() {
     try {
       const body = { fullName: form.fullName, email: form.email, role: form.role };
       if (form.password) body.password = form.password;
-      const res = await fetch(`${API_BASE}/users/${selected.id}`, {
+      const res = await fetchWithAuth(`${API_BASE}/users/${selected.id}`, {
         method: 'PUT', headers: authHeaders(), body: JSON.stringify(body),
       });
       
@@ -78,7 +79,7 @@ export default function UserManagementPage() {
   const handleDelete = async () => {
     setSaving(true);
     try {
-      const res = await fetch(`${API_BASE}/users/${selected.id}`, { method: 'DELETE', headers: authHeaders() });
+      const res = await fetchWithAuth(`${API_BASE}/users/${selected.id}`, { method: 'DELETE', headers: authHeaders() });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Lỗi');
       setShowDeleteModal(false); await fetchUsers(); showToast('Xóa thành công');
