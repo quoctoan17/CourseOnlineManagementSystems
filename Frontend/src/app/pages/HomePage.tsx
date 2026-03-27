@@ -15,7 +15,7 @@ export default function HomePage() {
   useEffect(() => {
   const load = async () => {
     try {
-      const courseRes: any = await courseService.getPopular(); // ← đổi
+      const courseRes: any = await courseService.getPopular(); 
       setCourses(courseRes.data);
 
       const catRes: any = await categoryService.getAll(1, 20);

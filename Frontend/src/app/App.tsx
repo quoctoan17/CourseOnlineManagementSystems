@@ -37,6 +37,7 @@ export default function App() {
           <Route path="/courses" element={<CourseListPage />} />
           <Route path="/courses/:slug" element={<CourseDetailsPage />} />
           <Route path="/payment/:courseId" element={<PaymentPage />} />
+          <Route path="/404" element={<NotFoundPage />} />
           <Route path="*" element={<NotFoundPage />} />
 
           {/* Protected Student Routes */}
@@ -138,9 +139,6 @@ export default function App() {
               </ProtectedRoute>
             }
           />
-
-          {/* 404 */}
-          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </Router>
     </AuthProvider>

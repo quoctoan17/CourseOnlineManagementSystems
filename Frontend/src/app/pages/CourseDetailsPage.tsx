@@ -17,6 +17,7 @@ export default function CourseDetailsPage() {
   const [loading, setLoading] = useState(true);
   const [enrolling, setEnrolling] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const navigate = useNavigate();
 
   useEffect(() => {
     const load = async () => {
@@ -24,8 +25,14 @@ export default function CourseDetailsPage() {
       try {
         const res = await fetch(`${API_BASE}/courses/slug/${slug}`);
         const data = await res.json();
-        if (!res.ok) throw new Error(data.error || 'Không tìm thấy khóa học');
-        setCourse(data.course);
+        if (!res.ok) throw new Error();
+
+        if (!res.ok || !data.course) {
+          navigate('/404', { replace: true });
+          return;
+        }
+
+        setCourse(data.course); 
 
         if (user && data.course?.id) {
           try {
@@ -38,7 +45,7 @@ export default function CourseDetailsPage() {
           } catch {}
         }
       } catch (err: any) {
-        setError(err.message);
+        navigate('/404', { replace: true });
       } finally {
         setLoading(false);
       }
@@ -46,7 +53,6 @@ export default function CourseDetailsPage() {
     load();
   }, [slug, user]);
 
-  const navigate = useNavigate();
 
 const handleEnroll = async () => {
   if (!course?.id) return;
@@ -70,6 +76,7 @@ const handleEnroll = async () => {
   // Có giá → chuyển sang trang payment
   navigate(`/payment/${course.id}`, { state: { course } });
 };
+ 
 
 
   const getInitials = (name: string) => {
@@ -94,7 +101,7 @@ const handleEnroll = async () => {
         </div>
       ) : !course ? (
         <div className="flex items-center justify-center min-h-[400px]">
-          <div className="text-gray-500">Khóa học không tìm thấy</div>
+          <div className="text-gray-500">Không tìm thấy khóa học nào!</div>
         </div>
       ) : (
         <>

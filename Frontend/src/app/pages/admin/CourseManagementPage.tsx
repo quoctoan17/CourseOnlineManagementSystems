@@ -2,6 +2,7 @@ import { AdminLayout } from "./AdminLayout";
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { Search, Edit, Trash2, Plus, X, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Course, Category } from '@/types';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
 const PAGE_SIZE = 8;
@@ -10,15 +11,15 @@ function authHeaders() { return { 'Content-Type': 'application/json', Authorizat
 const EMPTY_FORM = { title: '', description: '', price: '', category_id: '', thumbnail: '' };
 
 export default function CourseManagementPage() {
-  const [courses, setCourses] = useState([]);
-  const [categories, setCategories] = useState([]);
+  const [courses, setCourses] = useState<Course[]>([]);
+  const [categories, setCategories] = useState<Category[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [page, setPage] = useState(1);
   const [loading, setLoading] = useState(true);
   const [showAddModal, setShowAddModal] = useState(false);
   const [showEditModal, setShowEditModal] = useState(false);
   const [showDeleteModal, setShowDeleteModal] = useState(false);
-  const [selectedCourse, setSelectedCourse] = useState(null);
+  const [selectedCourse, setSelectedCourse] = useState<Course | null>(null);
   const [form, setForm] = useState(EMPTY_FORM);
   const [saving, setSaving] = useState(false);
   const [toast, setToast] = useState('');
@@ -89,7 +90,7 @@ export default function CourseManagementPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Lỗi');
       setShowDeleteModal(false); await fetchCourses();
-      showToast('✅ Xóa thành công');
+      showToast('Xóa thành công');
     } catch (err) { alert('Lỗi: ' + err.message); } finally { setSaving(false); }
   };
 

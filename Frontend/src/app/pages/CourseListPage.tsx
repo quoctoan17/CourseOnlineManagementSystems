@@ -55,7 +55,7 @@ export default function CourseListPage() {
         }
         setAllCourses(res.data || []);
       } catch (err: any) {
-        setError(err.message);
+        setError(err.message());
       } finally {
         setLoading(false);
       }

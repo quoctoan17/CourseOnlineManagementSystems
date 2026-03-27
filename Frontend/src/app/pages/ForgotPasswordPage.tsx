@@ -20,7 +20,7 @@ export default function ForgotPasswordPage() {
       setStep(2);
       setMessage("Email hợp lệ, hãy nhập mật khẩu mới");
     } catch (err: any) {
-      setError(err.message || "Email không tồn tại");
+      setError("Email không tồn tại!");
     }
   };
 
@@ -33,7 +33,7 @@ export default function ForgotPasswordPage() {
       setMessage("Đổi mật khẩu thành công. Bạn có thể đăng nhập lại.");
       setTimeout(() => navigate("/login"), 1500);
     } catch (err: any) {
-      setError(err.message || "Không thể đổi mật khẩu");
+      setError("Mật khẩu không khớp hoặc có lỗi xảy ra!");
     }
   };
 

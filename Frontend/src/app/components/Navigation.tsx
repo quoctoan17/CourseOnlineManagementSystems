@@ -1,6 +1,7 @@
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { BookOpen, LogIn, LogOut, User, LayoutDashboard, GraduationCap } from 'lucide-react';
 import { User as UserType } from '@/app/App';
+
 
 interface NavigationProps {
   user: UserType | null;
@@ -8,6 +9,14 @@ interface NavigationProps {
 }
 
 export function Navigation({ user, logout }: NavigationProps) {
+  const navigate = useNavigate();
+
+  const handleLogout = () => {
+    navigate('/');
+    setTimeout(() => {
+      logout?.();
+    }, 0);
+  };
   return (
     <nav className="sticky top-0 z-50 bg-white shadow-md">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -49,7 +58,7 @@ export function Navigation({ user, logout }: NavigationProps) {
                   <span className="text-sm font-medium">{user.name}</span>
                 </Link>
                 <button
-                  onClick={logout}
+                  onClick={handleLogout}
                   className="flex items-center text-gray-700 hover:text-orange-600 px-3 py-2 rounded-md text-sm font-medium"
                 >
                   <LogOut className="h-5 w-5 mr-1" />
