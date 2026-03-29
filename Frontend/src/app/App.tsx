@@ -21,6 +21,7 @@ import AdminLessonManagementPage from '@/app/pages/admin/AdminLessonManagementPa
 import ForgotPasswordPage from '@/app/pages/ForgotPasswordPage';
 import PaymentPage from '@/app/pages/PaymentPage';
 import NotFoundPage from '@/app/pages/NotFoundPage';
+import CertificatePage from '@/app/pages/CertificatePage';
 
 
 
@@ -54,6 +55,14 @@ export default function App() {
             element={
               <ProtectedRoute>
                 <MyCoursesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/certificates/course/:courseId"
+            element={
+              <ProtectedRoute>
+                <CertificatePage />
               </ProtectedRoute>
             }
           />

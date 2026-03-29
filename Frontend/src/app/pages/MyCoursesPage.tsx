@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { BookOpen, Clock, Award, Search } from 'lucide-react';
+import { BookOpen, Clock, Award, Search, Sparkles } from 'lucide-react';
 import { Layout } from '@/app/components/Layout';
 import { usePaginatedApi } from '@/hooks';
 import { enrollmentService } from '@/services/api';
@@ -12,32 +12,35 @@ interface CourseEnrollment {
   instructor_name: string;
   category_name?: string;
   enrolled_at: string;
+  completed_at?: string;
   status: 'active' | 'completed';
   total_lessons: number;
   completed_lessons: number;
+  has_new_lessons: boolean;
 }
 
 export default function MyCoursesPage() {
-  const {
-    data: courses = [],
-    loading,
-  } = usePaginatedApi<CourseEnrollment>(async (pageNum, limit) => {
-    const res: any = await enrollmentService.getMyEnrolledCourses(pageNum, limit);
-    const tp =
-      res.totalPages ||
-      (res.pagination && res.pagination.pages) ||
-      Math.ceil((res.pagination?.total || 0) / limit);
-    return { data: res.data, totalPages: tp };
-  });
+  const { data: courses = [], loading } = usePaginatedApi<CourseEnrollment>(
+    async (pageNum, limit) => {
+      const res: any = await enrollmentService.getMyEnrolledCourses(pageNum, limit);
+      const tp =
+        res.totalPages ||
+        (res.pagination && res.pagination.pages) ||
+        Math.ceil((res.pagination?.total || 0) / limit);
+      return { data: res.data, totalPages: tp };
+    }
+  );
 
   const [searchTerm, setSearchTerm] = useState('');
 
   const inProgressCourses = useMemo(
-    () => courses.filter((c) => c.completed_lessons < c.total_lessons),
+    () => courses.filter((c) => c.status !== 'completed'),
     [courses]
   );
+
+  // Hoàn thành = học xong tất cả lesson hiện tại
   const completedCourses = useMemo(
-    () => courses.filter((c) => c.total_lessons > 0 && c.completed_lessons >= c.total_lessons),
+    () => courses.filter((c) => c.status === 'completed'),
     [courses]
   );
 
@@ -77,13 +80,15 @@ export default function MyCoursesPage() {
           </div>
         </div>
 
-        {/* In Progress Courses */}
+        {/* In Progress */}
         {filteredInProgress.length > 0 && (
           <div className="mb-12">
             <h2 className="text-2xl font-bold mb-6">Đang học ({filteredInProgress.length})</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredInProgress.map((course) => {
-                const progress = course.total_lessons > 0 ? Math.round((course.completed_lessons / course.total_lessons) * 100) : 0;
+                const progress = course.total_lessons > 0
+                  ? Math.round((course.completed_lessons / course.total_lessons) * 100)
+                  : 0;
                 return (
                   <div key={course.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition">
                     <div className="relative">
@@ -133,14 +138,23 @@ export default function MyCoursesPage() {
           </div>
         )}
 
-        {/* Completed Courses */}
+        {/* Completed */}
         {filteredCompleted.length > 0 && (
           <div>
             <h2 className="text-2xl font-bold mb-6">Đã hoàn thành ({filteredCompleted.length})</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {filteredCompleted.map((course) => (
-                <div key={course.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition">
-                  <div className="relative">
+                <div key={course.id} className="bg-white rounded-lg shadow-md overflow-hidden hover:shadow-xl transition relative">
+
+                  {/* Badge "Có nội dung mới" */}
+                  {course.has_new_lessons && (
+                    <div className="absolute top-0 left-0 right-0 z-10 bg-amber-400 text-amber-900 text-xs font-semibold px-3 py-1.5 flex items-center gap-1.5">
+                      <Sparkles className="h-3.5 w-3.5 flex-shrink-0" />
+                      Có nội dung mới — bạn có muốn học thêm không?
+                    </div>
+                  )}
+
+                  <div className={`relative ${course.has_new_lessons ? 'mt-7' : ''}`}>
                     {course.thumbnail ? (
                       <img src={course.thumbnail} alt={course.title} className="w-full h-48 object-cover" />
                     ) : (
@@ -153,26 +167,33 @@ export default function MyCoursesPage() {
                       Hoàn thành
                     </div>
                   </div>
+
                   <div className="p-6">
                     <h3 className="text-xl font-semibold mb-2 line-clamp-2">{course.title}</h3>
-                    <p className="text-sm text-gray-600 mb-4">Giảng viên: {course.instructor_name}</p>
-                    <div className="flex items-center justify-between text-sm text-gray-600 mb-4">
-                      <div className="flex items-center gap-1">
-                        <BookOpen className="h-4 w-4" />
-                        <span>{course.total_lessons} bài học</span>
-                      </div>
+                    <p className="text-sm text-gray-600 mb-1">Giảng viên: {course.instructor_name}</p>
+                    {course.completed_at && (
+                      <p className="text-xs text-gray-400 mb-4">
+                        Hoàn thành: {new Date(course.completed_at).toLocaleDateString('vi-VN')}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-1 text-sm text-gray-600 mb-4">
+                      <BookOpen className="h-4 w-4" />
+                      <span>{course.total_lessons} bài học</span>
                     </div>
+
                     <div className="flex gap-2">
                       <Link
                         to={`/my-courses/${course.id}/lessons`}
-                        className="flex-1 text-center border border-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-50 transition"
+                        className="flex-1 text-center border border-gray-300 text-gray-700 py-2 rounded-md hover:bg-gray-50 transition text-sm"
                       >
-                        Xem lại
+                        {course.has_new_lessons ? 'Học nội dung mới' : 'Xem lại'}
                       </Link>
+                      {/* Nút chứng chỉ — link thẳng đến certificate của course này */}
                       <Link
-                        to="/progress"
-                        className="flex-1 text-center bg-green-600 text-white py-2 rounded-md hover:bg-green-700 transition"
+                        to={`/certificates/course/${course.id}`}
+                        className="flex-1 text-center bg-green-600 text-white py-2 rounded-md hover:bg-green-700 transition text-sm flex items-center justify-center gap-1"
                       >
+                        <Award className="h-4 w-4" />
                         Chứng chỉ
                       </Link>
                     </div>

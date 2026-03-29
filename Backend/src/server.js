@@ -12,6 +12,7 @@ import enrollmentRoutes from './routes/enrollmentRoutes.js';
 import progressRoutes from './routes/progressRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
+import certificateRoutes from './routes/certificateRoutes.js';
 
 
 dotenv.config();
@@ -39,6 +40,7 @@ app.use('/api/enrollments', enrollmentRoutes);
 app.use('/api/progress', progressRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/payments', paymentRoutes);
+app.use('/api/certificates', certificateRoutes);
 
 
 // Error Handling Middleware
