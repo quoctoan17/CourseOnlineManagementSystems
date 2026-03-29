@@ -8,6 +8,7 @@ import {
   getCoursesByCategory,
   updateCourse,
   deleteCourse,
+  hardDeleteCourse,
   updateCourseStatus,
   getPopularCourses,
 } from '../controllers/courseController.js';
@@ -28,6 +29,7 @@ router.post('/', authMiddleware, instructorMiddleware, createCourse);
 router.get('/instructor/my-courses', authMiddleware, instructorMiddleware, getInstructorCourses);
 router.put('/:id', authMiddleware, instructorMiddleware, updateCourse);
 router.patch('/:id/status', authMiddleware, instructorMiddleware, updateCourseStatus);
+router.delete('/:id/hard', authMiddleware, hardDeleteCourse);
 router.delete('/:id', authMiddleware, instructorMiddleware, deleteCourse);
 
 export default router;

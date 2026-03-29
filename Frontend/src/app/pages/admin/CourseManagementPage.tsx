@@ -1,7 +1,7 @@
 import { AdminLayout } from "./AdminLayout";
 import { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
-import { Search, Edit, Trash2, Plus, X, BookOpen, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Search, Edit, Trash2, Plus, X, BookOpen, ChevronLeft, ChevronRight, RotateCcw } from 'lucide-react';
 import { Course, Category } from '@/types';
 
 const API_BASE = import.meta.env.VITE_API_URL || 'http://localhost:3000/api';
@@ -44,8 +44,6 @@ export default function CourseManagementPage() {
   };
 
   useEffect(() => { fetchCourses(); fetchCategories(); }, []);
-
-  // Reset page khi search thay đổi
   useEffect(() => { setPage(1); }, [searchTerm]);
 
   const handleAdd = async () => {
@@ -83,6 +81,7 @@ export default function CourseManagementPage() {
     } catch (err) { alert('Lỗi: ' + err.message); } finally { setSaving(false); }
   };
 
+  // Soft delete — ngưng xuất bản (archived)
   const handleDelete = async () => {
     setSaving(true);
     try {
@@ -90,8 +89,39 @@ export default function CourseManagementPage() {
       const data = await res.json();
       if (!res.ok) throw new Error(data.error || 'Lỗi');
       setShowDeleteModal(false); await fetchCourses();
-      showToast('Xóa thành công');
+      showToast('Đã ngưng xuất bản khóa học');
     } catch (err) { alert('Lỗi: ' + err.message); } finally { setSaving(false); }
+  };
+
+  // Hard delete — xóa vĩnh viễn
+  const handleHardDelete = async () => {
+    setSaving(true);
+    try {
+      const res = await fetch(`${API_BASE}/courses/${selectedCourse.id}/hard`, {
+        method: 'DELETE',
+        headers: authHeaders(),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Lỗi');
+      setShowDeleteModal(false);
+      await fetchCourses();
+      showToast('Đã xóa vĩnh viễn khóa học');
+    } catch (err) { alert('Lỗi: ' + err.message); } finally { setSaving(false); }
+  };
+
+  // Restore — xuất bản lại course đang archived
+  const handleRestore = async (course) => {
+    try {
+      const res = await fetch(`${API_BASE}/courses/${course.id}/status`, {
+        method: 'PATCH',
+        headers: authHeaders(),
+        body: JSON.stringify({ status: 'published' }),
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Lỗi');
+      await fetchCourses();
+      showToast('Đã xuất bản lại khóa học');
+    } catch (err) { alert('Lỗi: ' + err.message); }
   };
 
   // Filter + Pagination
@@ -101,6 +131,14 @@ export default function CourseManagementPage() {
   );
   const totalPages = Math.ceil(filtered.length / PAGE_SIZE);
   const paginated = filtered.slice((page - 1) * PAGE_SIZE, page * PAGE_SIZE);
+
+  const getStatusBadge = (status: string) => {
+    if (status === 'published' || status === 'active')
+      return <span className="px-3 py-1 rounded-full text-sm font-medium bg-green-100 text-green-800">Đã xuất bản</span>;
+    if (status === 'archived')
+      return <span className="px-3 py-1 rounded-full text-sm font-medium bg-red-100 text-red-800">Đã ngưng</span>;
+    return <span className="px-3 py-1 rounded-full text-sm font-medium bg-yellow-100 text-yellow-800">Chưa xuất bản</span>;
+  };
 
   const formFields = (
     <div className="space-y-4">
@@ -170,7 +208,7 @@ export default function CourseManagementPage() {
                 <table className="w-full">
                   <thead className="bg-gray-50 border-b">
                     <tr>
-                      {['Khóa học','Giảng viên','Học viên','Giá','Trạng thái','Ngày tạo','Hành động'].map((h, i) => (
+                      {['Khóa học', 'Giảng viên', 'Học viên', 'Giá', 'Trạng thái', 'Ngày tạo', 'Hành động'].map((h, i) => (
                         <th key={i} className={`px-6 py-4 text-sm font-semibold text-gray-900 ${i === 6 ? 'text-right' : 'text-left'}`}>{h}</th>
                       ))}
                     </tr>
@@ -182,19 +220,29 @@ export default function CourseManagementPage() {
                         <td className="px-6 py-4 text-gray-600">{course.instructor_name || '—'}</td>
                         <td className="px-6 py-4 text-gray-600">{course.student_count || 0}</td>
                         <td className="px-6 py-4 text-gray-600">{course.price ? Number(course.price).toLocaleString('vi-VN') + 'đ' : 'Miễn phí'}</td>
-                        <td className="px-6 py-4">
-                          <span className={`px-3 py-1 rounded-full text-sm font-medium ${course.status === 'published' || course.status === 'active' ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'}`}>
-                            {course.status === 'published' || course.status === 'active' ? 'Đã xuất bản' : 'Nháp'}
-                          </span>
-                        </td>
+                        <td className="px-6 py-4">{getStatusBadge(course.status)}</td>
                         <td className="px-6 py-4 text-gray-600">{course.created_at ? new Date(course.created_at).toLocaleDateString('vi-VN') : '—'}</td>
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-end gap-2">
                             <Link to={`/admin/courses/${course.id}/lessons`} className="p-2 text-green-600 hover:bg-green-50 rounded-lg transition" title="Quản lý bài học">
                               <BookOpen className="h-5 w-5" />
                             </Link>
-                            <button onClick={() => openEdit(course)} className="p-2 text-orange-500 hover:bg-orange-50 rounded-lg transition"><Edit className="h-5 w-5" /></button>
-                            <button onClick={() => { setSelectedCourse(course); setShowDeleteModal(true); }} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition"><Trash2 className="h-5 w-5" /></button>
+                            <button onClick={() => openEdit(course)} className="p-2 text-orange-500 hover:bg-orange-50 rounded-lg transition" title="Chỉnh sửa">
+                              <Edit className="h-5 w-5" />
+                            </button>
+                            {/* Nút xuất bản lại — chỉ hiện khi archived */}
+                            {course.status === 'archived' && (
+                              <button
+                                onClick={() => handleRestore(course)}
+                                className="p-2 text-blue-600 hover:bg-blue-50 rounded-lg transition"
+                                title="Xuất bản lại"
+                              >
+                                <RotateCcw className="h-5 w-5" />
+                              </button>
+                            )}
+                            <button onClick={() => { setSelectedCourse(course); setShowDeleteModal(true); }} className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition" title="Xóa">
+                              <Trash2 className="h-5 w-5" />
+                            </button>
                           </div>
                         </td>
                       </tr>
@@ -202,7 +250,6 @@ export default function CourseManagementPage() {
                   </tbody>
                 </table>
 
-                {/* Pagination */}
                 {totalPages > 1 && (
                   <div className="px-6 py-4 border-t bg-gray-50 flex items-center justify-between">
                     <span className="text-sm text-gray-500">
@@ -245,6 +292,7 @@ export default function CourseManagementPage() {
           ))}
         </div>
 
+        {/* Modal Thêm */}
         {showAddModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-xl p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
@@ -261,6 +309,7 @@ export default function CourseManagementPage() {
           </div>
         )}
 
+        {/* Modal Sửa */}
         {showEditModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-xl p-8 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto">
@@ -277,15 +326,51 @@ export default function CourseManagementPage() {
           </div>
         )}
 
+        {/* Modal Xóa */}
         {showDeleteModal && (
           <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
             <div className="bg-white rounded-xl p-8 max-w-md w-full mx-4">
-              <h2 className="text-xl font-bold mb-4">Xác nhận xóa</h2>
-              <p className="text-gray-600 mb-6">Bạn có chắc muốn xóa <strong>"{selectedCourse?.title}"</strong>?</p>
-              <div className="flex gap-4">
-                <button onClick={handleDelete} disabled={saving} className="flex-1 bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 disabled:opacity-50">{saving ? 'Đang xóa...' : 'Xóa'}</button>
-                <button onClick={() => setShowDeleteModal(false)} className="flex-1 border border-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-50">Hủy</button>
+              <h2 className="text-xl font-bold mb-2">Xác nhận xóa</h2>
+              <p className="text-gray-600 mb-6">
+                Bạn muốn xóa khóa học <strong>"{selectedCourse?.title}"</strong> theo cách nào?
+              </p>
+
+              {/* Option 1 — Soft delete */}
+              <div className="border border-yellow-200 bg-yellow-50 rounded-lg p-4 mb-3">
+                <p className="font-semibold text-yellow-800 mb-1">Ngưng xuất bản</p>
+                <p className="text-sm text-yellow-700 mb-3">
+                  Ẩn khỏi danh sách công khai. Học viên đã đăng ký vẫn tiếp tục học bình thường. Có thể xuất bản lại sau.
+                </p>
+                <button
+                  onClick={handleDelete}
+                  disabled={saving || selectedCourse?.status === 'archived'}
+                  className="w-full bg-yellow-500 text-white py-2 rounded-lg hover:bg-yellow-600 disabled:opacity-50 text-sm font-medium"
+                >
+                  {saving ? 'Đang xử lý...' : selectedCourse?.status === 'archived' ? 'Đã ngưng trước đó' : 'Ngưng xuất bản'}
+                </button>
               </div>
+
+              {/* Option 2 — Hard delete */}
+              <div className="border border-red-200 bg-red-50 rounded-lg p-4 mb-4">
+                <p className="font-semibold text-red-800 mb-1">Xóa vĩnh viễn</p>
+                <p className="text-sm text-red-700 mb-3">
+                  Xóa toàn bộ dữ liệu: bài học, tiến độ, đăng ký, chứng chỉ. Không thể khôi phục.
+                </p>
+                <button
+                  onClick={handleHardDelete}
+                  disabled={saving}
+                  className="w-full bg-red-600 text-white py-2 rounded-lg hover:bg-red-700 disabled:opacity-50 text-sm font-medium"
+                >
+                  {saving ? 'Đang xóa...' : 'Xóa vĩnh viễn'}
+                </button>
+              </div>
+
+              <button
+                onClick={() => setShowDeleteModal(false)}
+                className="w-full border border-gray-300 text-gray-700 py-2 rounded-lg hover:bg-gray-50 text-sm"
+              >
+                Hủy
+              </button>
             </div>
           </div>
         )}

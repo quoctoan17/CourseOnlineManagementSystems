@@ -179,6 +179,24 @@ export const deleteCourse = async (req, res) => {
   }
 };
 
+// ── HARD DELETE ──────────────
+export const hardDeleteCourse = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const course = await Course.findById(id);
+    if (!course) return res.status(404).json({ error: 'Khóa học không tồn tại' });
+    if (req.user.role !== 'admin')
+      return res.status(403).json({ error: 'Chỉ admin mới có quyền xóa vĩnh viễn' });
+
+    await pool.query('DELETE FROM courses WHERE id = $1', [id]);
+
+    res.json({ message: 'Đã xóa khóa học vĩnh viễn.' });
+  } catch (error) {
+    console.error('Hard delete course error:', error);
+    res.status(500).json({ error: 'Lỗi server' });
+  }
+};
+
 // ── PATCH /:id/status ─────────────────────────────────────────────────────────
 export const updateCourseStatus = async (req, res) => {
   try {
