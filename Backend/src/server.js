@@ -13,6 +13,8 @@ import progressRoutes from './routes/progressRoutes.js';
 import reportRoutes from './routes/reportRoutes.js';
 import paymentRoutes from './routes/paymentRoutes.js';
 import certificateRoutes from './routes/certificateRoutes.js';
+import youtubeRoutes from './routes/youtubeRoutes.js';
+
 
 
 dotenv.config();
@@ -41,6 +43,8 @@ app.use('/api/progress', progressRoutes);
 app.use('/api/reports', reportRoutes);
 app.use('/api/payments', paymentRoutes);
 app.use('/api/certificates', certificateRoutes);
+app.use('/api/youtube', youtubeRoutes);
+
 
 
 // Error Handling Middleware

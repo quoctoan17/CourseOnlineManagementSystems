@@ -30,45 +30,33 @@ class Enrollment {
 
   // Lấy tất cả courses của một student — thêm has_new_lessons + completed_at
   static async findStudentCourses(userId, limit = 10, offset = 0) {
-    const query = `
-      SELECT 
-        c.id, c.title, c.description, c.thumbnail, c.slug, c.status as course_status,
-        c.instructor_id, c.category_id, c.created_at,
-        u.full_name as instructor_name,
-        cat.name as category_name,
-        e.enrolled_at, e.status,
-        e.has_new_lessons,
-        e.completed_at,
-        COUNT(l.id) as total_lessons,
-        COUNT(CASE WHEN p.completed = true THEN 1 END) as completed_lessons,
-        SUM(
-          CASE 
-            WHEN l.duration IS NOT NULL AND l.duration ~ '^\d+:\d+$'
-            THEN (SPLIT_PART(l.duration, ':', 1)::int * 60 + SPLIT_PART(l.duration, ':', 2)::int)
-            ELSE 0
-          END
-        ) as total_duration_seconds,
-        SUM(
-          CASE 
-            WHEN p.completed = true AND l.duration IS NOT NULL AND l.duration ~ '^\d+:\d+$'
-            THEN (SPLIT_PART(l.duration, ':', 1)::int * 60 + SPLIT_PART(l.duration, ':', 2)::int)
-            ELSE 0
-          END
-        ) as completed_duration_seconds
-      FROM enrollments e
-      JOIN courses c ON e.course_id = c.id
-      LEFT JOIN users u ON c.instructor_id = u.id
-      LEFT JOIN categories cat ON c.category_id = cat.id
-      LEFT JOIN lessons l ON c.id = l.course_id
-      LEFT JOIN progress p ON l.id = p.lesson_id AND p.user_id = e.user_id
-      WHERE e.user_id = $1
-      GROUP BY c.id, u.full_name, cat.name, e.enrolled_at, e.status, e.has_new_lessons, e.completed_at
-      ORDER BY e.enrolled_at DESC
-      LIMIT $2 OFFSET $3
-    `;
-    const result = await pool.query(query, [userId, limit, offset]);
-    return result.rows;
-  }
+  const query = `
+    SELECT 
+      c.id, c.title, c.description, c.thumbnail, c.slug, c.status as course_status,
+      c.instructor_id, c.category_id, c.created_at,
+      u.full_name as instructor_name,
+      cat.name as category_name,
+      e.enrolled_at, e.status,
+      e.has_new_lessons,
+      e.completed_at,
+      COUNT(l.id) as total_lessons,
+      COUNT(CASE WHEN p.completed = true THEN 1 END) as completed_lessons,
+      COALESCE(SUM(l.duration), 0) as total_duration_seconds,
+      COALESCE(SUM(CASE WHEN p.completed = true THEN l.duration ELSE 0 END), 0) as completed_duration_seconds
+    FROM enrollments e
+    JOIN courses c ON e.course_id = c.id
+    LEFT JOIN users u ON c.instructor_id = u.id
+    LEFT JOIN categories cat ON c.category_id = cat.id
+    LEFT JOIN lessons l ON c.id = l.course_id
+    LEFT JOIN progress p ON l.id = p.lesson_id AND p.user_id = e.user_id
+    WHERE e.user_id = $1
+    GROUP BY c.id, u.full_name, cat.name, e.enrolled_at, e.status, e.has_new_lessons, e.completed_at
+    ORDER BY e.enrolled_at DESC
+    LIMIT $2 OFFSET $3
+  `;
+  const result = await pool.query(query, [userId, limit, offset]);
+  return result.rows;
+}
 
   static async findCourseStudents(courseId, limit = 10, offset = 0) {
     const query = `

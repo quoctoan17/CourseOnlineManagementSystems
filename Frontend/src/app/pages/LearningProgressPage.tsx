@@ -8,6 +8,14 @@ import {
 import { useAuth } from '@/context/AuthContext';
 import { progressService, enrollmentService } from '@/services/api';
 
+function formatTotalTime(seconds: number): string {
+  if (!seconds || seconds === 0) return '0m';
+  const h = Math.floor(seconds / 3600);
+  const m = Math.floor((seconds % 3600) / 60);
+  if (h > 0) return m > 0 ? `${h}h ${m}m` : `${h}h`;
+  return `${m}m`;
+}
+
 export default function LearningProgressPage() {
   const { user } = useAuth();
   const [allProgress, setAllProgress] = useState<any[]>([]);
@@ -19,17 +27,14 @@ export default function LearningProgressPage() {
     const load = async () => {
       setLoading(true);
       try {
-        // Lấy tất cả progress
         const progressRes: any = await progressService.getMyProgress();
         const progress = progressRes.data || [];
         setAllProgress(progress);
 
-        // Lấy danh sách khóa học đã enroll
         const enrollRes: any = await enrollmentService.getMyEnrolledCourses(1, 100);
         const courses = enrollRes.data || [];
         setEnrolledCourses(courses);
 
-        // Lấy tiến độ từng khóa học
         const courseProgressList = await Promise.all(
           courses.map(async (c: any) => {
             try {
@@ -62,30 +67,28 @@ export default function LearningProgressPage() {
     load();
   }, []);
 
-  // Stats
   const completedLessons = allProgress.filter((p: any) => p.completed).length;
   const completedCourses = courseProgress.filter((c) => c.percent === 100).length;
   const avgProgress = courseProgress.length
     ? Math.round(courseProgress.reduce((s, c) => s + c.percent, 0) / courseProgress.length)
     : 0;
 
-  // Giờ học ước tính (mỗi lesson ~15 phút)
-  const totalHours = Math.round((completedLessons * 15) / 60 * 10) / 10;
+  // Tính từ duration thật — chỉ tính bài đã hoàn thành
+  const totalCompletedSeconds = enrolledCourses.reduce((sum: number, c: any) => {
+    return sum + (parseInt(c.completed_duration_seconds) || 0);
+  }, 0);
 
-  // Weekly chart — tính số bài hoàn thành theo ngày trong tuần hiện tại
   const days = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN'];
   const weeklyData = days.map((day, i) => {
     const count = allProgress.filter((p: any) => {
       if (!p.completed_at) return false;
       const d = new Date(p.completed_at).getDay();
-      // getDay: 0=CN, 1=T2...6=T7
       const mapped = d === 0 ? 6 : d - 1;
       return mapped === i;
     }).length;
     return { day, lessons: count };
   });
 
-  // Monthly chart — tính số bài hoàn thành theo tháng
   const monthlyMap: Record<string, number> = {};
   allProgress.forEach((p: any) => {
     if (!p.completed_at || !p.completed) return;
@@ -110,13 +113,28 @@ export default function LearningProgressPage() {
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
         <h1 className="text-3xl font-bold mb-8">Tiến độ học tập</h1>
 
-        {/* Stats Cards */}
         <div className="grid grid-cols-1 md:grid-cols-4 gap-6 mb-8">
           {[
-            { icon: <Clock className="h-8 w-8 text-blue-500" />, value: `${totalHours}h`, label: 'Tổng giờ học' },
-            { icon: <Award className="h-8 w-8 text-yellow-500" />, value: `${completedCourses}`, label: 'Khóa học hoàn thành' },
-            { icon: <Target className="h-8 w-8 text-green-500" />, value: `${avgProgress}%`, label: 'Tiến độ trung bình' },
-            { icon: <TrendingUp className="h-8 w-8 text-purple-500" />, value: `${completedLessons}`, label: 'Bài học đã hoàn thành' },
+            {
+              icon: <Clock className="h-8 w-8 text-blue-500" />,
+              value: formatTotalTime(totalCompletedSeconds),
+              label: 'Tổng giờ học',
+            },
+            {
+              icon: <Award className="h-8 w-8 text-yellow-500" />,
+              value: `${completedCourses}`,
+              label: 'Khóa học hoàn thành',
+            },
+            {
+              icon: <Target className="h-8 w-8 text-green-500" />,
+              value: `${avgProgress}%`,
+              label: 'Tiến độ trung bình',
+            },
+            {
+              icon: <TrendingUp className="h-8 w-8 text-purple-500" />,
+              value: `${completedLessons}`,
+              label: 'Bài học đã hoàn thành',
+            },
           ].map((s, i) => (
             <div key={i} className="bg-white rounded-xl border p-6">
               <div className="flex items-center justify-between mb-2">
@@ -128,7 +146,6 @@ export default function LearningProgressPage() {
           ))}
         </div>
 
-        {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           <div className="bg-white rounded-xl border p-6">
             <h2 className="text-xl font-bold mb-4">Bài học hoàn thành trong tuần</h2>
@@ -138,7 +155,7 @@ export default function LearningProgressPage() {
                 <XAxis dataKey="day" />
                 <YAxis allowDecimals={false} />
                 <Tooltip />
-                <Bar dataKey="lessons" fill="#f97316" name="Bài học" radius={[4,4,0,0]} />
+                <Bar dataKey="lessons" fill="#f97316" name="Bài học" radius={[4, 4, 0, 0]} />
               </BarChart>
             </ResponsiveContainer>
           </div>
@@ -158,7 +175,6 @@ export default function LearningProgressPage() {
           </div>
         </div>
 
-        {/* Course Progress */}
         <div className="bg-white rounded-xl border p-6">
           <h2 className="text-xl font-bold mb-6">Tiến độ từng khóa học</h2>
           {courseProgress.length === 0 ? (

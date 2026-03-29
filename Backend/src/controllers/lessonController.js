@@ -104,6 +104,21 @@ export const deleteLesson = async (req, res) => {
       return res.status(400).json({ error: 'Không thể xóa bài học cuối cùng. Khóa học phải có ít nhất 1 bài học.' });
 
     await Lesson.delete(id);
+
+    await pool.query(
+      `UPDATE enrollments e
+       SET has_new_lessons = FALSE
+       WHERE e.course_id = $1
+         AND e.status = 'completed'
+         AND NOT EXISTS (
+           SELECT 1 FROM lessons l
+           LEFT JOIN progress p ON l.id = p.lesson_id AND p.user_id = e.user_id
+           WHERE l.course_id = $1
+             AND (p.completed IS NULL OR p.completed = FALSE)
+         )`,
+      [lesson.course_id]
+    );
+
     res.json({ message: 'Xóa bài học thành công' });
   } catch (error) {
     console.error('Delete lesson error:', error);

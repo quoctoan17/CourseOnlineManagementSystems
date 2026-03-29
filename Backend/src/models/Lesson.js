@@ -35,21 +35,16 @@ class Lesson {
 
   // Tính tổng duration của course (format: "Xh Ym")
   static async getTotalDuration(courseId) {
-    const query = `
-      SELECT duration FROM lessons
-      WHERE course_id = $1 AND duration IS NOT NULL
-    `;
-    const result = await pool.query(query, [courseId]);
-    let totalSeconds = 0;
-    for (const row of result.rows) {
-      // Parse "MM:SS" hoặc "HH:MM:SS"
-      const parts = row.duration.split(':').map(Number);
-      if (parts.length === 2) totalSeconds += parts[0] * 60 + parts[1];
-      else if (parts.length === 3) totalSeconds += parts[0] * 3600 + parts[1] * 60 + parts[2];
-    }
-    if (totalSeconds === 0) return null;
-    const h = Math.floor(totalSeconds / 3600);
-    const m = Math.floor((totalSeconds % 3600) / 60);
+    const result = await pool.query(
+      `SELECT COALESCE(SUM(duration), 0) AS total
+      FROM lessons
+      WHERE course_id = $1 AND duration IS NOT NULL`,
+      [courseId]
+    );
+    const total = parseInt(result.rows[0].total, 10);
+    if (total === 0) return null;
+    const h = Math.floor(total / 3600);
+    const m = Math.floor((total % 3600) / 60);
     return h > 0 ? `${h}h ${m}m` : `${m} phút`;
   }
 
